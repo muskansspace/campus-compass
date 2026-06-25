@@ -1,5 +1,54 @@
+
 import streamlit as st
 
+from supabase_client import supabase
+
+st.title("Campus Compass Login")
+
+email = st.text_input("Email")
+password = st.text_input("Password", type="password")
+
+if st.button("Sign Up"):
+    try:
+        response = supabase.auth.sign_up(
+            {
+                "email": email.strip(),
+                "password": password
+            }
+        )
+
+        st.success("Signup successful!")
+        st.write(response)
+
+    except Exception as e:
+        st.error(f"Signup failed: {e}")
+
+if st.button("Login"):
+    try:
+        response = supabase.auth.sign_in_with_password(
+            {
+                "email": email.strip(),
+                "password": password
+            }
+        )
+
+        st.session_state["logged_in"] = True
+        st.session_state["user_id"] = response.user.id
+        st.session_state["email"] = response.user.email
+
+        st.success("Login successful!")
+
+    except Exception as e:
+        st.error(f"Login failed: {e}")
+
+if st.session_state.get("logged_in"):
+    st.success(f"Logged in as {st.session_state['email']}")
+
+if st.session_state.get("logged_in"):
+    if st.button("Logout"):
+        st.session_state.clear()
+        st.rerun()
+        
 st.set_page_config(
     page_title="Campus Compass| Smart Dashboard",
     page_icon="🎯",
@@ -202,3 +251,4 @@ st.markdown("""
     <small style="color: #a0a0a0;">💡 Pro tip: Use the sidebar to navigate between pages or click on any feature card above!</small>
 </div>
 """, unsafe_allow_html=True)
+
