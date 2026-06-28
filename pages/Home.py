@@ -206,8 +206,8 @@ INTERESTS_OPTIONS = [
 ]
 
 # ── Parse saved skills/interests ──
-saved_skills = existing["skills"].split(", ") if existing and existing.get("skills") else []
-saved_interests = existing["interests"].split(", ") if existing and existing.get("interests") else []
+saved_skills = existing["skills"] if existing and existing.get("skills") else []
+saved_interests = existing["interests"] if existing and existing.get("interests") else []
 
 # ── Form ──
 col1, col2 = st.columns(2)
