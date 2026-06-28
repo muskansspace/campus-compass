@@ -208,6 +208,8 @@ INTERESTS_OPTIONS = [
 # ── Parse saved skills/interests ──
 saved_skills = existing["skills"] if existing and existing.get("skills") else []
 saved_interests = existing["interests"] if existing and existing.get("interests") else []
+extra_skills_list = [s for s in saved_skills if s not in SKILLS_OPTIONS]
+extra_interests_list = [i for i in saved_interests if i not in INTERESTS_OPTIONS]
 
 # ── Form ──
 col1, col2 = st.columns(2)
@@ -250,10 +252,13 @@ with col2:
 # ── Extra fields ──
 extra_skills = st.text_input(
     "Anything else you're good at?",
+    value=", ".join(extra_skills_list) if extra_skills_list else "",
     placeholder="e.g. Blender, Public Relations, Robotics..."
 )
+
 extra_interests = st.text_input(
     "Any other interests?",
+    value=", ".join(extra_interests_list) if extra_interests_list else "",
     placeholder="e.g. Astronomy, Finance, Gaming..."
 )
 
@@ -297,17 +302,20 @@ if st.button("🔍 Find My Societies", use_container_width=True):
         }
 
         try:
-            supabase.table("profiles").upsert({
-                "user_id": st.session_state["user_id"],
-                "name": name,
-                "year": year,
-                "branch": branch,
-                "skills": all_skills,
-                "interests": all_interests,
-                "hours_per_week": int(hours),
-                "linkedin_url": linkedin if linkedin else None,
-                "linkedin_share": True if share_linkedin == "Yes" else False
-            }).execute()
+            supabase.table("profiles").upsert(
+                {
+                    "user_id": st.session_state["user_id"],
+                    "name": name,
+                    "year": year,
+                    "branch": branch,
+                    "skills": all_skills,
+                    "interests": all_interests,
+                    "hours_per_week": int(hours),
+                    "linkedin_url": linkedin if linkedin else None,
+                    "linkedin_share": share_linkedin == "Yes"
+                },
+                on_conflict="user_id"
+        ).execute()
             st.success("Profile saved! Finding your matches...")
             st.switch_page("pages/Recommendation.py")
         except Exception as e:
