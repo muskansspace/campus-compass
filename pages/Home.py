@@ -1,200 +1,314 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
-from datetime import datetime
+from supabase_client import supabase
 
 st.set_page_config(
-    page_title="Home | M1·UI",
-    page_icon="🏠",
-    layout="wide"
+    page_title="Campus Compass | Home",
+    page_icon="🧭",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Custom CSS - Dark theme with purple cards
 st.markdown("""
 <style>
-    /* Dark background */
-    .stApp {
-        background: #0e0e0e;
+    .stApp { background: #2A252A; }
+    .block-container { padding-top: 2rem !important; }
+
+    [data-testid="stSidebar"] {
+        background: #5E4955 !important;
+        border-right: 1px solid #996888 !important;
+    }
+    [data-testid="stSidebar"] * { color: #C6DDF0 !important; }
+    [data-testid="stSidebar"] .stButton > button {
+        background: transparent !important;
+        color: #C99DA3 !important;
+        border: 1px solid #996888 !important;
+        border-radius: 8px !important;
+        width: 100% !important;
+        font-weight: 500 !important;
+    }
+    [data-testid="stSidebar"] .stButton > button:hover {
+        background: #996888 !important;
+        color: #ffffff !important;
     }
 
-    /* Main header */
-    .main-header {
-        text-align: center;
-        margin-bottom: 2rem;
-    }
+    h1, h2, h3 { color: #C6DDF0 !important; }
 
-    .main-header h1 {
-        color: #e0e0e0;
-        font-size: 2.5rem;
+    .intro-card {
+        background: #5E4955;
+        border: 1px solid #996888;
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+    }
+    .intro-card h2 {
+        color: #C6DDF0 !important;
+        font-size: 1.4rem;
         margin-bottom: 0.5rem;
     }
-
-    .main-header p {
-        color: #a0a0a0;
-        font-size: 1rem;
+    .intro-card p {
+        color: #C99DA3;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin: 0;
     }
 
-    /* Metric Cards */
-    .metric-card {
-        background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
-        padding: 1.5rem;
-        border-radius: 16px;
-        text-align: center;
-        color: white;
-        transition: all 0.3s ease;
-        margin: 0.5rem 0;
+    .stTextInput label, .stNumberInput label,
+    .stMultiSelect label, .stSelectbox label,
+    .stRadio label {
+        color: #C99DA3 !important;
+        font-size: 0.85rem !important;
+        font-weight: 500 !important;
     }
 
-    .metric-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(124, 58, 237, 0.3);
+    .stTextInput > div > div > input,
+    .stTextInput > div > div > input:focus,
+    .stNumberInput > div > div > input {
+        background-color: #3d2e38 !important;
+        color: #C6DDF0 !important;
+        caret-color: #C6DDF0 !important;
+        -webkit-text-fill-color: #C6DDF0 !important;
+        border: 1px solid #996888 !important;
+        border-radius: 8px !important;
+        opacity: 1 !important;
     }
 
-    .metric-value {
-        font-size: 2rem;
-        font-weight: bold;
-        margin: 0.5rem 0;
+    .stMultiSelect > div {
+        background: #3d2e38 !important;
+        border: 1px solid #996888 !important;
+        border-radius: 8px !important;
+        color: #C6DDF0 !important;
     }
 
-    .metric-label {
-        font-size: 0.85rem;
-        opacity: 0.9;
+    .stSelectbox > div > div {
+        background: #3d2e38 !important;
+        border: 1px solid #996888 !important;
+        border-radius: 8px !important;
+        color: #C6DDF0 !important;
     }
 
-    /* Section cards */
-    .section-card {
-        background: #1a1a1a;
-        padding: 1.5rem;
-        border-radius: 16px;
-        margin: 1rem 0;
-        border: 1px solid #2a2a2a;
-    }
-
-    .section-title {
-        color: #a855f7;
-        font-size: 1.2rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    /* Activity item */
-    .activity-item {
-        background: #222222;
-        padding: 0.8rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
-        border-left: 3px solid #a855f7;
-        color: #e0e0e0;
-    }
-
-    /* Button styling */
     .stButton > button {
-        background: linear-gradient(135deg, #7c3aed, #a855f7);
-        color: white;
-        border: none;
-        padding: 0.5rem 1.5rem;
-        border-radius: 10px;
-        font-weight: 500;
-        transition: all 0.3s ease;
+        background: #996888 !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        padding: 0.6rem 1.5rem !important;
+        transition: all 0.2s !important;
     }
-
     .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(124, 58, 237, 0.4);
+        background: #C99DA3 !important;
+        color: #2A252A !important;
     }
 
-    /* Remove white space */
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 0rem;
+    .stRadio > div { gap: 1rem !important; }
+    .stRadio label p {
+        color: #ffffff !important;
+        font-size: 0.9rem !important;
     }
 
-    hr {
-        border-color: #2a2a2a;
-        margin: 1.5rem 0;
+    .stMultiSelect span[data-baseweb="tag"] {
+        background: #996888 !important;
+        color: #ffffff !important;
+        border-radius: 20px !important;
     }
+
+    [data-baseweb="select"] > div {
+        background: #3d2e38 !important;
+        border: 1px solid #996888 !important;
+        border-radius: 8px !important;
+        color: #C6DDF0 !important;
+    }
+    [data-baseweb="menu"] { background: #3d2e38 !important; }
+    [data-baseweb="option"] {
+        background: #3d2e38 !important;
+        color: #C6DDF0 !important;
+    }
+    [data-baseweb="option"]:hover { background: #5E4955 !important; }
+
+    [data-baseweb="select"] svg {
+        fill: #C99DA3 !important;
+        opacity: 1 !important;
+        display: block !important;
+    }
+
+    hr { border-color: #996888 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# Header
+# ── Auth check ──
+if not st.session_state.get("logged_in"):
+    st.switch_page("App.py")
+
+# ── Fetch existing profile ──
+existing = None
+try:
+    result = supabase.table("profiles").select("*").eq(
+        "user_id", st.session_state["user_id"]
+    ).execute()
+    if result.data:
+        existing = result.data[0]
+        st.session_state["user_name"] = existing["name"]
+except:
+    pass
+
+# ── Sidebar ──
+with st.sidebar:
+    st.markdown(f"""
+    <div style="padding: 1rem 0; text-align:center;">
+        <div style="font-size:1.8rem">🧭</div>
+        <p style="color:#C6DDF0; font-weight:600; margin:0.3rem 0;">Campus Compass</p>
+        <p style="color:#C99DA3; font-size:0.8rem;">{st.session_state.get('email','')}</p>
+    </div>
+    <hr style="border-color:#996888; margin-bottom:1rem;">
+    """, unsafe_allow_html=True)
+
+    if st.button("Logout"):
+        st.session_state.clear()
+        st.rerun()
+
+# ── Welcome ──
+name_display = st.session_state.get("user_name", "there")
+st.markdown(f"""
+<h1 style="color:#C6DDF0; margin-bottom:0.2rem;">
+    👋 Welcome, {name_display}!
+</h1>
+<p style="color:#C99DA3; margin-bottom:1.5rem; font-size:0.95rem;">
+    Let's find your perfect society match.
+</p>
+""", unsafe_allow_html=True)
+
+# ── Intro card ──
 st.markdown("""
-<div class="main-header">
-    <h1>🏠 Dashboard Home</h1>
-    <p>Welcome back! Here's your overview</p>
+<div class="intro-card">
+    <h2>🧭 What is Campus Compass?</h2>
+    <p>
+        Every student has a society waiting for them. Campus Compass matches you 
+        with IGDTUW societies based on what you love, what you know, and how much 
+        time you have — so you spend less time searching and more time doing.
+    </p>
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown("---")
+st.markdown("### 📋 Your Profile")
 
-# Key Metrics
-st.markdown("### 📊 Key Metrics")
+# ── Predefined options ──
+SKILLS_OPTIONS = [
+    "Python", "Java", "C++", "Web Development",
+    "Machine Learning", "UI/UX Design", "Public Speaking",
+    "Content Writing", "Photography", "Video Editing",
+    "Data Analysis", "DSA", "App Development", "Graphic Design"
+]
 
-col1, col2, col3 = st.columns(3)
+INTERESTS_OPTIONS = [
+    "Technology", "Management", "Cultural", "Sports",
+    "Social Impact", "Design", "Literary", "Music", "Dance",
+    "Research", "Entrepreneurship", "Photography"
+]
 
-with col1:
-    st.markdown("""
-    <div class="metric-card">
-        <div class="metric-label">📋 Active Goals</div>
-        <div class="metric-value">3</div>
-    </div>
-    """, unsafe_allow_html=True)
+# ── Parse saved skills/interests ──
+saved_skills = existing["skills"].split(", ") if existing and existing.get("skills") else []
+saved_interests = existing["interests"].split(", ") if existing and existing.get("interests") else []
 
-with col2:
-    st.markdown("""
-    <div class="metric-card">
-        <div class="metric-label">⭐ Total Points</div>
-        <div class="metric-value">1,234</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col3:
-    st.markdown("""
-    <div class="metric-card">
-        <div class="metric-label">🔥 Current Streak</div>
-        <div class="metric-value">7 days</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-st.markdown("---")
-
-# Two column layout
+# ── Form ──
 col1, col2 = st.columns(2)
 
 with col1:
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">🎯 Quick Actions</div>', unsafe_allow_html=True)
-
-    if st.button("📊 View Tracker", use_container_width=True):
-        st.switch_page("pages/tracker.py")
-
-    if st.button("💡 Get Recommendations", use_container_width=True):
-        st.switch_page("pages/recommendations.py")
-
-    st.markdown('</div>', unsafe_allow_html=True)
+    name = st.text_input(
+        "Full Name",
+        value=existing["name"] if existing else "",
+        placeholder="Your name"
+    )
+    branch = st.text_input(
+        "Branch",
+        value=existing["branch"] if existing else "",
+        placeholder="e.g. CSE, IT, ECE..."
+    )
+    hours = st.number_input(
+        "Available hours per week for societies",
+        min_value=1, max_value=40,
+        value=int(existing["hours_per_week"]) if existing and existing.get("hours_per_week") else 5,
+        help="Be honest! This helps us suggest realistic combinations."
+    )
 
 with col2:
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">🔄 Recent Activity</div>', unsafe_allow_html=True)
+    year = st.selectbox(
+        "Year",
+        ["1st Year", "2nd Year", "3rd Year", "4th Year"],
+        index=["1st Year", "2nd Year", "3rd Year", "4th Year"].index(
+            existing["year"]
+        ) if existing and existing.get("year") else 0
+    )
+    selected_skills = st.multiselect(
+        "Skills", SKILLS_OPTIONS,
+        default=[s for s in saved_skills if s in SKILLS_OPTIONS]
+    )
+    selected_interests = st.multiselect(
+        "Interests", INTERESTS_OPTIONS,
+        default=[i for i in saved_interests if i in INTERESTS_OPTIONS]
+    )
 
-    activities = [
-        "🎯 Updated 'Complete ML Course' progress",
-        "⭐ Earned 50 points for daily tasks",
-        "🔥 7 day streak achieved!"
-    ]
+# ── Extra fields ──
+extra_skills = st.text_input(
+    "Anything else you're good at?",
+    placeholder="e.g. Blender, Public Relations, Robotics..."
+)
+extra_interests = st.text_input(
+    "Any other interests?",
+    placeholder="e.g. Astronomy, Finance, Gaming..."
+)
 
-    for activity in activities:
-        st.markdown(f'<div class="activity-item">{activity}</div>', unsafe_allow_html=True)
+linkedin = st.text_input(
+    "LinkedIn URL (optional)",
+    value=existing["linkedin_url"] if existing and existing.get("linkedin_url") else "",
+    placeholder="linkedin.com/in/yourname"
+)
 
-    st.markdown('</div>', unsafe_allow_html=True)
+if linkedin:
+    share_linkedin = st.radio(
+        "Comfortable sharing your LinkedIn with other students?",
+        ["Yes", "No"],
+        index=0 if existing and existing.get("linkedin_share") else 1
+    )
+else:
+    share_linkedin = "No"
 
-st.markdown("---")
+st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
 
-# Tips section
-st.markdown("""
-<div style="background: #1a1a1a; padding: 1rem; border-radius: 12px; text-align: center; border-left: 3px solid #a855f7;">
-    <small style="color: #a0a0a0;">💡 Tip: Visit the Tracker page to update your goals and earn more points!</small>
-</div>
-""", unsafe_allow_html=True)
+# ── Submit ──
+if st.button("🔍 Find My Societies", use_container_width=True):
+    if not name or not branch or not selected_skills or not selected_interests:
+        st.error("Please fill in Name, Branch, Skills and Interests!")
+    else:
+        all_skills = selected_skills + [
+            x.strip() for x in extra_skills.split(",") if x.strip()
+        ]
+        all_interests = selected_interests + [
+            x.strip() for x in extra_interests.split(",") if x.strip()
+        ]
+
+        st.session_state["user_name"] = name
+        st.session_state["user_profile"] = {
+            "name": name,
+            "year": year,
+            "branch": branch,
+            "skills": all_skills,
+            "interests": all_interests,
+            "hours_per_week": hours
+        }
+
+        try:
+            supabase.table("profiles").upsert({
+                "user_id": st.session_state["user_id"],
+                "name": name,
+                "year": year,
+                "branch": branch,
+                "skills": ", ".join(all_skills),
+                "interests": ", ".join(all_interests),
+                "hours_per_week": int(hours),
+                "linkedin_url": linkedin if linkedin else None,
+                "linkedin_share": True if share_linkedin == "Yes" else False
+            }).execute()
+            st.success("Profile saved! Finding your matches...")
+            st.switch_page("pages/Recommendation.py")
+        except Exception as e:
+            st.error(f"Could not save profile: {e}")
