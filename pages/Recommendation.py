@@ -165,7 +165,7 @@ SOCIETIES = [
         "description": "Active technical society organizing tech events and workshops throughout the year.",
         "activities": "InnoVortex Hackathon, SSSC Summer Cohort, 21 Days of Code, workshops",
         "skills_required": "Enthusiasm to learn and contribute consistently",
-        "commitment_hrs": 6,
+        "commitment_per_week": 6,
         "commitment_text": "2-10 hrs (varies by event)",
         "recruitment_month": "August (sometimes June/July)",
         "instagram": "https://www.instagram.com/techneeds_igdtuw_/",

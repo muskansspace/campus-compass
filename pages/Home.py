@@ -12,7 +12,6 @@ st.markdown("""
 <style>
     .stApp { background: #2A252A; }
     .block-container { padding-top: 2rem !important; }
-
     [data-testid="stSidebar"] {
         background: #5E4955 !important;
         border-right: 1px solid #996888 !important;
@@ -30,9 +29,7 @@ st.markdown("""
         background: #996888 !important;
         color: #ffffff !important;
     }
-
     h1, h2, h3 { color: #C6DDF0 !important; }
-
     .intro-card {
         background: #5E4955;
         border: 1px solid #996888;
@@ -51,7 +48,6 @@ st.markdown("""
         line-height: 1.6;
         margin: 0;
     }
-
     .stTextInput label, .stNumberInput label,
     .stMultiSelect label, .stSelectbox label,
     .stRadio label {
@@ -59,7 +55,6 @@ st.markdown("""
         font-size: 0.85rem !important;
         font-weight: 500 !important;
     }
-
     .stTextInput > div > div > input,
     .stTextInput > div > div > input:focus,
     .stNumberInput > div > div > input {
@@ -71,21 +66,18 @@ st.markdown("""
         border-radius: 8px !important;
         opacity: 1 !important;
     }
-
     .stMultiSelect > div {
         background: #3d2e38 !important;
         border: 1px solid #996888 !important;
         border-radius: 8px !important;
         color: #C6DDF0 !important;
     }
-
     .stSelectbox > div > div {
         background: #3d2e38 !important;
         border: 1px solid #996888 !important;
         border-radius: 8px !important;
         color: #C6DDF0 !important;
     }
-
     .stButton > button {
         background: #996888 !important;
         color: #ffffff !important;
@@ -99,19 +91,16 @@ st.markdown("""
         background: #C99DA3 !important;
         color: #2A252A !important;
     }
-
     .stRadio > div { gap: 1rem !important; }
     .stRadio label p {
         color: #ffffff !important;
         font-size: 0.9rem !important;
     }
-
     .stMultiSelect span[data-baseweb="tag"] {
         background: #996888 !important;
         color: #ffffff !important;
         border-radius: 20px !important;
     }
-
     [data-baseweb="select"] > div {
         background: #3d2e38 !important;
         border: 1px solid #996888 !important;
@@ -124,13 +113,11 @@ st.markdown("""
         color: #C6DDF0 !important;
     }
     [data-baseweb="option"]:hover { background: #5E4955 !important; }
-
     [data-baseweb="select"] svg {
         fill: #C99DA3 !important;
         opacity: 1 !important;
         display: block !important;
     }
-
     hr { border-color: #996888 !important; }
 </style>
 """, unsafe_allow_html=True)
@@ -139,7 +126,7 @@ st.markdown("""
 if not st.session_state.get("logged_in"):
     st.switch_page("App.py")
 
-# ── Fetch existing profile ──
+# ── Fetch fresh profile from DB every time ──
 existing = None
 try:
     result = supabase.table("profiles").select("*").eq(
@@ -150,6 +137,20 @@ try:
         st.session_state["user_name"] = existing["name"]
 except:
     pass
+
+# ── Always use DB data (existing) — fresh fetch har baar ──
+profile = existing
+
+# ── Parse string to list ──
+def parse_list(val):
+    if not val:
+        return []
+    if isinstance(val, list):
+        return [x.strip() for x in val if x.strip()]
+    return [x.strip() for x in str(val).split(",") if x.strip()]
+
+saved_skills = parse_list(profile.get("skills") if profile else None)
+saved_interests = parse_list(profile.get("interests") if profile else None)
 
 # ── Sidebar ──
 with st.sidebar:
@@ -163,14 +164,19 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     if st.button("Logout"):
+        try:
+            supabase.auth.sign_out()      # <-- important
+        except:
+            pass
+
         st.session_state.clear()
-        st.rerun()
+        st.switch_page("App.py")
 
 # ── Welcome ──
 name_display = st.session_state.get("user_name", "there")
 st.markdown(f"""
 <h1 style="color:#C6DDF0; margin-bottom:0.2rem;">
-    👋 Welcome, {name_display}!
+    Welcome, {name_display}!
 </h1>
 <p style="color:#C99DA3; margin-bottom:1.5rem; font-size:0.95rem;">
     Let's find your perfect society match.
@@ -180,7 +186,7 @@ st.markdown(f"""
 # ── Intro card ──
 st.markdown("""
 <div class="intro-card">
-    <h2>🧭 What is Campus Compass?</h2>
+    <h2>What is Campus Compass?</h2>
     <p>
         Every student has a society waiting for them. Campus Compass matches you 
         with IGDTUW societies based on what you love, what you know, and how much 
@@ -189,7 +195,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown("### 📋 Your Profile")
+st.markdown("### Your Profile")
 
 # ── Predefined options ──
 SKILLS_OPTIONS = [
@@ -205,28 +211,24 @@ INTERESTS_OPTIONS = [
     "Research", "Entrepreneurship", "Photography"
 ]
 
-# ── Parse saved skills/interests ──
-saved_skills = existing["skills"] if existing and existing.get("skills") else []
-saved_interests = existing["interests"] if existing and existing.get("interests") else []
-
 # ── Form ──
 col1, col2 = st.columns(2)
 
 with col1:
     name = st.text_input(
         "Full Name",
-        value=existing["name"] if existing else "",
+        value=profile["name"] if profile and profile.get("name") else "",
         placeholder="Your name"
     )
     branch = st.text_input(
         "Branch",
-        value=existing["branch"] if existing else "",
+        value=profile["branch"] if profile and profile.get("branch") else "",
         placeholder="e.g. CSE, IT, ECE..."
     )
     hours = st.number_input(
         "Available hours per week for societies",
         min_value=1, max_value=40,
-        value=int(existing["hours_per_week"]) if existing and existing.get("hours_per_week") else 5,
+        value=int(profile["hours_per_week"]) if profile and profile.get("hours_per_week") else 5,
         help="Be honest! This helps us suggest realistic combinations."
     )
 
@@ -235,8 +237,8 @@ with col2:
         "Year",
         ["1st Year", "2nd Year", "3rd Year", "4th Year"],
         index=["1st Year", "2nd Year", "3rd Year", "4th Year"].index(
-            existing["year"]
-        ) if existing and existing.get("year") else 0
+            profile["year"]
+        ) if profile and profile.get("year") in ["1st Year", "2nd Year", "3rd Year", "4th Year"] else 0
     )
     selected_skills = st.multiselect(
         "Skills", SKILLS_OPTIONS,
@@ -259,7 +261,7 @@ extra_interests = st.text_input(
 
 linkedin = st.text_input(
     "LinkedIn URL (optional)",
-    value=existing["linkedin_url"] if existing and existing.get("linkedin_url") else "",
+    value=profile["linkedin_url"] if profile and profile.get("linkedin_url") else "",
     placeholder="linkedin.com/in/yourname"
 )
 
@@ -267,7 +269,7 @@ if linkedin:
     share_linkedin = st.radio(
         "Comfortable sharing your LinkedIn with other students?",
         ["Yes", "No"],
-        index=0 if existing and existing.get("linkedin_share") else 1
+        index=0 if profile and profile.get("linkedin_share") else 1
     )
 else:
     share_linkedin = "No"
@@ -275,7 +277,7 @@ else:
 st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
 
 # ── Submit ──
-if st.button("🔍 Find My Societies", use_container_width=True):
+if st.button("Find My Societies", use_container_width=True):
     if not name or not branch or not selected_skills or not selected_interests:
         st.error("Please fill in Name, Branch, Skills and Interests!")
     else:
@@ -287,14 +289,6 @@ if st.button("🔍 Find My Societies", use_container_width=True):
         ]
 
         st.session_state["user_name"] = name
-        st.session_state["user_profile"] = {
-            "name": name,
-            "year": year,
-            "branch": branch,
-            "skills": all_skills,
-            "interests": all_interests,
-            "hours_per_week": hours
-        }
 
         try:
             supabase.table("profiles").upsert({
@@ -302,8 +296,8 @@ if st.button("🔍 Find My Societies", use_container_width=True):
                 "name": name,
                 "year": year,
                 "branch": branch,
-                "skills": all_skills,
-                "interests": all_interests,
+                "skills": ", ".join(all_skills),
+                "interests": ", ".join(all_interests),
                 "hours_per_week": int(hours),
                 "linkedin_url": linkedin if linkedin else None,
                 "linkedin_share": True if share_linkedin == "Yes" else False
