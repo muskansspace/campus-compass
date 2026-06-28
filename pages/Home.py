@@ -302,8 +302,8 @@ if st.button("🔍 Find My Societies", use_container_width=True):
                 "name": name,
                 "year": year,
                 "branch": branch,
-                "skills": ", ".join(all_skills),
-                "interests": ", ".join(all_interests),
+                "skills": all_skills,
+                "interests": all_interests,
                 "hours_per_week": int(hours),
                 "linkedin_url": linkedin if linkedin else None,
                 "linkedin_share": True if share_linkedin == "Yes" else False
