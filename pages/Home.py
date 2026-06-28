@@ -211,15 +211,13 @@ INTERESTS_OPTIONS = [
     "Research", "Entrepreneurship", "Photography"
 ]
 
-<<<<<<< HEAD
+
 # ── Parse saved skills/interests ──
 saved_skills = existing["skills"] if existing and existing.get("skills") else []
 saved_interests = existing["interests"] if existing and existing.get("interests") else []
 extra_skills_list = [s for s in saved_skills if s not in SKILLS_OPTIONS]
 extra_interests_list = [i for i in saved_interests if i not in INTERESTS_OPTIONS]
 
-=======
->>>>>>> 23e8d686b30c1e49b7d693b90b5a3b03adcaf9b4
 # ── Form ──
 col1, col2 = st.columns(2)
 
@@ -303,7 +301,6 @@ if st.button("Find My Societies", use_container_width=True):
         st.session_state["user_name"] = name
 
         try:
-<<<<<<< HEAD
             supabase.table("profiles").upsert(
                 {
                     "user_id": st.session_state["user_id"],
@@ -318,19 +315,6 @@ if st.button("Find My Societies", use_container_width=True):
                 },
                 on_conflict="user_id"
         ).execute()
-=======
-            supabase.table("profiles").upsert({
-                "user_id": st.session_state["user_id"],
-                "name": name,
-                "year": year,
-                "branch": branch,
-                "skills": ", ".join(all_skills),
-                "interests": ", ".join(all_interests),
-                "hours_per_week": int(hours),
-                "linkedin_url": linkedin if linkedin else None,
-                "linkedin_share": True if share_linkedin == "Yes" else False
-            }).execute()
->>>>>>> 23e8d686b30c1e49b7d693b90b5a3b03adcaf9b4
             st.success("Profile saved! Finding your matches...")
             st.switch_page("pages/Recommendation.py")
         except Exception as e:
