@@ -163,7 +163,7 @@ with st.sidebar:
 
     if st.button("Logout"):
         st.session_state.clear()
-        st.rerun()
+        st.switch_page("App.py")
 
 # ── Header ──
 st.markdown("""

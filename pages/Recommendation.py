@@ -136,8 +136,6 @@ st.markdown("""
     }
 
     hr { border-color: #996888 !important; margin: 1.2rem 0 !important; }
-
-}
             
 </style>
 """, unsafe_allow_html=True)
@@ -178,7 +176,7 @@ SOCIETIES = [
         "description": "IGDTUW's only Web3/blockchain society focused on awareness and community building.",
         "activities": "AM Hacks (flagship hackathon), Web3 Week, Community Meetups",
         "skills_required": "Basic coding, Event management, Communication, Canva/design",
-        "commitment_hrs": 2,
+        "commitment_per_week": 2,
         "commitment_text": "~2 hrs/week avg (more during events)",
         "recruitment_month": "End of August (1st & 2nd year)",
         "instagram": "https://www.instagram.com/assetmerkle.igdtuw/",
@@ -408,7 +406,7 @@ with st.sidebar:
 
     if st.button("Logout"):
         st.session_state.clear()
-        st.rerun()
+        st.switch_page("App.py")
 
 # ── Header ──
 name_display = st.session_state.get("user_name", "there")

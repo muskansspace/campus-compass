@@ -121,16 +121,20 @@ st.markdown("""
 if not st.session_state.get("logged_in"):
     st.switch_page("App.py")
 
-# ── Fetch user profile silently ──
+# ── Fetch user profile name — cached in session_state ──
 user_name = ""
-try:
-    profile = supabase.table("profiles").select("name").eq(
-        "user_id", st.session_state["user_id"]
-    ).execute()
-    if profile.data:
-        user_name = profile.data[0]["name"]
-except:
-    pass
+if "user_name" not in st.session_state:
+    try:
+        profile = supabase.table("profiles").select("name").eq(
+            "user_id", st.session_state["user_id"]
+        ).limit(1).execute()
+        if profile.data:
+            user_name = profile.data[0]["name"]
+            st.session_state["user_name"] = user_name
+    except:
+        pass
+else:
+    user_name = st.session_state["user_name"]
 
 # ── Sidebar ──
 with st.sidebar:
@@ -151,18 +155,18 @@ with st.sidebar:
         st.session_state.clear()
         st.switch_page("App.py")
 
-# ── Persistent success check ──
-# Only re-query Supabase when we don't already have a definitive answer in session state.
-# "wants_new_feedback" is set when the user explicitly clicks "Submit another feedback".
+# ── Submission state check ──
+# Priority order:
+# 1. User explicitly wants to submit again → show form
+# 2. Already known from this session → reuse
+# 3. First load → check DB (only id + rating + snippet, no heavy query)
 if st.session_state.get("wants_new_feedback"):
-    # User clicked the button — show the form regardless of DB state
     already_submitted = False
 elif "already_submitted" in st.session_state:
-    # We already know from a previous check this session — reuse it
     already_submitted = st.session_state["already_submitted"]
 else:
-    # First load (or after login/refresh) — check Supabase and fetch confirmation data
     try:
+        # Lightweight query: only fetch id, rating, and first 120 chars of text
         result = supabase.table("feedback").select("id, rating, feedback_text").eq(
             "user_id", st.session_state["user_id"]
         ).order("created_at", desc=True).limit(1).execute()
@@ -297,7 +301,7 @@ with center:
                 st.session_state["last_rating"] = st.session_state["fb_rating"]
                 st.session_state["last_feedback_snippet"] = feedback_text.strip()[:120]
 
-                # Mark as submitted both in session and so next load reflects it
+                # Mark as submitted
                 st.session_state["fb_rating"] = 0
                 st.session_state["wants_new_feedback"] = False
                 st.session_state["already_submitted"] = True

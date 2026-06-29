@@ -126,22 +126,23 @@ st.markdown("""
 if not st.session_state.get("logged_in"):
     st.switch_page("App.py")
 
-# ── Fetch fresh profile from DB every time ──
-existing = None
-try:
-    result = supabase.table("profiles").select("*").eq(
-        "user_id", st.session_state["user_id"]
-    ).execute()
-    if result.data:
-        existing = result.data[0]
-        st.session_state["user_name"] = existing["name"]
-except:
-    pass
+# ── Fetch profile from DB only once per session — cache in session_state ──
+if "profile_cache" not in st.session_state:
+    try:
+        result = supabase.table("profiles").select("*").eq(
+            "user_id", st.session_state["user_id"]
+        ).execute()
+        if result.data:
+            st.session_state["profile_cache"] = result.data[0]
+            st.session_state["user_name"] = result.data[0]["name"]
+        else:
+            st.session_state["profile_cache"] = None
+    except:
+        st.session_state["profile_cache"] = None
 
-profile = existing
+profile = st.session_state.get("profile_cache")
 
 # ── Parse string OR list → clean Python list ──
-# FIX: only defined once here, used everywhere below
 def parse_list(val):
     if not val:
         return []
@@ -312,6 +313,11 @@ if st.button("Find My Societies", use_container_width=True):
                 },
                 on_conflict="user_id"
             ).execute()
+
+            # Invalidate cache so next visit to Home reflects new data
+            if "profile_cache" in st.session_state:
+                del st.session_state["profile_cache"]
+
             st.success("Profile saved! Finding your matches...")
             st.switch_page("pages/Recommendation.py")
         except Exception as e:

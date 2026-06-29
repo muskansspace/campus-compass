@@ -8,21 +8,19 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# App.py mein sabse upar add karo — set_page_config ke baad
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
 
-# Always try to restore session on every run
-try:
-    session = supabase.auth.get_session()
-
-    if session and session.user:
-        st.session_state["logged_in"] = True
-        st.session_state["user_id"] = session.user.id
-        st.session_state["email"] = session.user.email
-
-except:
-    st.session_state["logged_in"] = False
+# Only hit Supabase if not already logged in — avoids slow network call on every rerun
+if not st.session_state.get("logged_in"):
+    try:
+        session = supabase.auth.get_session()
+        if session and session.user:
+            st.session_state["logged_in"] = True
+            st.session_state["user_id"] = session.user.id
+            st.session_state["email"] = session.user.email
+    except:
+        st.session_state["logged_in"] = False
 
 st.markdown("""
 <style>
