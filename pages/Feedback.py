@@ -122,6 +122,16 @@ st.markdown("""
 # ── Auth check ──
 if not st.session_state.get("logged_in"):
     st.switch_page("App.py")
+# ── Fetch name silently from profiles ──
+user_name = ""
+try:
+    profile = supabase.table("profiles").select("name").eq(
+        "user_id", st.session_state["user_id"]
+    ).execute()
+    if profile.data:
+        user_name = profile.data[0]["name"]
+except:
+    pass
 
 # ── Sidebar ──
 with st.sidebar:
@@ -232,10 +242,12 @@ with center:
         else:
             try:
                 supabase.table("feedback").insert({
-                    "user_id": st.session_state["user_id"],
-                    "feedback_text": feedback_text.strip(),
-                    "rating": st.session_state["fb_rating"]
-                }).execute()
+    "user_id": st.session_state["user_id"],
+    "email": st.session_state["email"],
+    "name": user_name,
+    "feedback_text": feedback_text.strip(),
+    "rating": st.session_state["fb_rating"]
+}).execute()
 
                 st.session_state["fb_rating"] = 0
                 st.session_state["feedback_submitted"] = True
