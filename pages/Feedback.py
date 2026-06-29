@@ -56,7 +56,6 @@ st.markdown("""
         box-shadow: 0 0 0 2px rgba(201,157,163,0.2) !important;
     }
 
-    /* Star buttons — completely hidden visually, star shown via markdown above */
     div[data-testid="stMainBlockContainer"] [data-testid="stButton"] button {
         background: #996888 !important;
         color: #ffffff !important;
@@ -73,7 +72,6 @@ st.markdown("""
         color: #2A252A !important;
     }
 
-    /* Hide star click buttons completely — only emoji shows */
     .star-click-btn button {
         background: transparent !important;
         border: none !important;
@@ -122,7 +120,8 @@ st.markdown("""
 # ── Auth check ──
 if not st.session_state.get("logged_in"):
     st.switch_page("App.py")
-# ── Fetch name silently from profiles ──
+
+# ── Fetch user profile silently ──
 user_name = ""
 try:
     profile = supabase.table("profiles").select("name").eq(
@@ -152,32 +151,79 @@ with st.sidebar:
         st.session_state.clear()
         st.switch_page("App.py")
 
+# ── Persistent success check ──
+# Only re-query Supabase when we don't already have a definitive answer in session state.
+# "wants_new_feedback" is set when the user explicitly clicks "Submit another feedback".
+if st.session_state.get("wants_new_feedback"):
+    # User clicked the button — show the form regardless of DB state
+    already_submitted = False
+elif "already_submitted" in st.session_state:
+    # We already know from a previous check this session — reuse it
+    already_submitted = st.session_state["already_submitted"]
+else:
+    # First load (or after login/refresh) — check Supabase and fetch confirmation data
+    try:
+        result = supabase.table("feedback").select("id, rating, feedback_text").eq(
+            "user_id", st.session_state["user_id"]
+        ).order("created_at", desc=True).limit(1).execute()
+        already_submitted = bool(result.data)
+        if already_submitted and not st.session_state.get("last_rating"):
+            st.session_state["last_rating"] = result.data[0].get("rating", 0)
+            st.session_state["last_feedback_snippet"] = result.data[0].get("feedback_text", "")[:120]
+    except:
+        already_submitted = False
+    st.session_state["already_submitted"] = already_submitted
+
 # ── Success screen ──
-if st.session_state.get("feedback_submitted"):
-    st.session_state.pop("feedback_submitted")
-    st.markdown("""
+if already_submitted:
+    last_rating = st.session_state.get("last_rating", 0)
+    last_snippet = st.session_state.get("last_feedback_snippet", "")
+    stars_html = ("★" * last_rating + "☆" * (5 - last_rating)) if last_rating else ""
+    snippet_html = (
+        f'<p style="color:#C6DDF0; font-size:0.88rem; font-style:italic; '
+        f'margin-top:0.8rem; padding:0.6rem 1rem; background:#2A252A; '
+        f'border-radius:8px; border-left:3px solid #996888;">"{last_snippet}{"…" if len(last_snippet)==120 else ""}"</p>'
+    ) if last_snippet else ""
+    rating_html = (
+        f'<p style="font-size:1.6rem; color:#F4C430; letter-spacing:0.1rem; margin:0.4rem 0 0 0;">{stars_html}</p>'
+    ) if stars_html else ""
+
+    st.markdown(f"""
     <div class="success-box">
         <div style="font-size:2.8rem; margin-bottom:0.8rem">✅</div>
         <h2>Thank you!</h2>
         <p>Your feedback helps us make Campus Compass better for every IGDTUW student.</p>
+        {rating_html}
+        {snippet_html}
     </div>
     """, unsafe_allow_html=True)
+
+    _, center_btn, _ = st.columns([1, 2, 1])
+    with center_btn:
+        if st.button("➕ Submit Another Feedback", use_container_width=True):
+            st.session_state["wants_new_feedback"] = True
+            st.session_state["already_submitted"] = False
+            st.session_state["fb_rating"] = 0
+            st.session_state["feedback_text"] = ""
+            st.rerun()
+
     st.stop()
 
-# ── Page header ──
+# ── Feedback form ──
+
+# ── State defaults ──
+if "fb_rating" not in st.session_state:
+    st.session_state["fb_rating"] = 0
+
+STAR_LABELS = {0: "", 1: "😞 Poor", 2: "😐 Fair", 3: "🙂 Good", 4: "😊 Great", 5: "🤩 Excellent!"}
+STAR_COLORS = {0: "", 1: "#e05c5c", 2: "#d4956a", 3: "#d4c46a", 4: "#96c96a", 5: "#6ac96a"}
+
 st.markdown("""
 <h1 style="color:#C6DDF0; margin-bottom:0.2rem;">Share Your Feedback</h1>
 <p style="color:#C99DA3; margin-bottom:2rem; font-size:0.95rem;">
     Honest input from you helps us improve — take 2 minutes.
 </p>
 """, unsafe_allow_html=True)
-
-# ── State ──
-if "fb_rating" not in st.session_state:
-    st.session_state["fb_rating"] = 0
-
-STAR_LABELS = {0: "", 1: "😞 Poor", 2: "😐 Fair", 3: "🙂 Good", 4: "😊 Great", 5: "🤩 Excellent!"}
-STAR_COLORS = {0: "", 1: "#e05c5c", 2: "#d4956a", 3: "#d4c46a", 4: "#96c96a", 5: "#6ac96a"}
 
 _, center, _ = st.columns([1, 2, 1])
 
@@ -186,7 +232,6 @@ with center:
     # ── Stars ──
     st.markdown('<p class="section-label" style="text-align:center;">How would you rate Campus Compass overall?</p>', unsafe_allow_html=True)
 
-    # Row 1: just the big star icons
     star_cols = st.columns(5)
     for i, col in enumerate(star_cols, start=1):
         with col:
@@ -197,7 +242,6 @@ with center:
                 unsafe_allow_html=True
             )
 
-    # Row 2: invisible click buttons directly below stars
     btn_cols = st.columns(5)
     for i, col in enumerate(btn_cols, start=1):
         with col:
@@ -207,7 +251,6 @@ with center:
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-    # ── Rating label ──
     hint = STAR_LABELS[st.session_state["fb_rating"]]
     hint_color = STAR_COLORS[st.session_state["fb_rating"]]
     st.markdown(
@@ -222,7 +265,8 @@ with center:
         placeholder="What did you like? What felt off? Any society we missed? Any feature you'd love to see?",
         height=220,
         max_chars=1000,
-        label_visibility="collapsed"
+        label_visibility="collapsed",
+        key="feedback_text"
     )
 
     char_count = len(feedback_text)
@@ -242,15 +286,21 @@ with center:
         else:
             try:
                 supabase.table("feedback").insert({
-    "user_id": st.session_state["user_id"],
-    "email": st.session_state["email"],
-    "name": user_name,
-    "feedback_text": feedback_text.strip(),
-    "rating": st.session_state["fb_rating"]
-}).execute()
+                    "user_id": st.session_state["user_id"],
+                    "email": st.session_state["email"],
+                    "name": user_name,
+                    "feedback_text": feedback_text.strip(),
+                    "rating": st.session_state["fb_rating"]
+                }).execute()
 
+                # Save snapshot for the success screen before clearing
+                st.session_state["last_rating"] = st.session_state["fb_rating"]
+                st.session_state["last_feedback_snippet"] = feedback_text.strip()[:120]
+
+                # Mark as submitted both in session and so next load reflects it
                 st.session_state["fb_rating"] = 0
-                st.session_state["feedback_submitted"] = True
+                st.session_state["wants_new_feedback"] = False
+                st.session_state["already_submitted"] = True
                 st.rerun()
 
             except Exception as e:
