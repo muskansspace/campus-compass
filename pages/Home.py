@@ -138,10 +138,10 @@ try:
 except:
     pass
 
-# ── Always use DB data (existing) — fresh fetch har baar ──
 profile = existing
 
-# ── Parse string to list ──
+# ── Parse string OR list → clean Python list ──
+# FIX: only defined once here, used everywhere below
 def parse_list(val):
     if not val:
         return []
@@ -149,6 +149,7 @@ def parse_list(val):
         return [x.strip() for x in val if x.strip()]
     return [x.strip() for x in str(val).split(",") if x.strip()]
 
+# ── Single source of truth for saved values ──
 saved_skills = parse_list(profile.get("skills") if profile else None)
 saved_interests = parse_list(profile.get("interests") if profile else None)
 
@@ -165,10 +166,9 @@ with st.sidebar:
 
     if st.button("Logout"):
         try:
-            supabase.auth.sign_out()      # <-- important
+            supabase.auth.sign_out()
         except:
             pass
-
         st.session_state.clear()
         st.switch_page("App.py")
 
@@ -211,10 +211,7 @@ INTERESTS_OPTIONS = [
     "Research", "Entrepreneurship", "Photography"
 ]
 
-
-# ── Parse saved skills/interests ──
-saved_skills = existing["skills"] if existing and existing.get("skills") else []
-saved_interests = existing["interests"] if existing and existing.get("interests") else []
+# ── Separate known vs extra (custom) entries ──
 extra_skills_list = [s for s in saved_skills if s not in SKILLS_OPTIONS]
 extra_interests_list = [i for i in saved_interests if i not in INTERESTS_OPTIONS]
 
@@ -314,7 +311,7 @@ if st.button("Find My Societies", use_container_width=True):
                     "linkedin_share": share_linkedin == "Yes"
                 },
                 on_conflict="user_id"
-        ).execute()
+            ).execute()
             st.success("Profile saved! Finding your matches...")
             st.switch_page("pages/Recommendation.py")
         except Exception as e:
