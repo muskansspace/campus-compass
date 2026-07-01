@@ -1,6 +1,7 @@
 import streamlit as st
 from supabase_client import supabase
 from analytics import burnout_calculator, best_combinations, get_burnout_advice
+from societies_data import SOCIETIES
 
 st.set_page_config(
     page_title="Campus Compass | Favourites",
@@ -130,18 +131,6 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* Progress bar */
-    [data-testid="stProgress"] > div {
-        background: #1a1414 !important;
-        border-radius: 10px !important;
-        height: 8px !important;
-    }
-    .stProgress > div > div > div {
-        background: linear-gradient(90deg, #4CAF50, #81C784) !important;
-        border-radius: 10px !important;
-        height: 8px !important;
-    }
-
     hr { border-color: #996888 !important; margin: 1.2rem 0 !important; }
 </style>
 """, unsafe_allow_html=True)
@@ -149,6 +138,31 @@ st.markdown("""
 # ── Auth check ──
 if not st.session_state.get("logged_in"):
     st.switch_page("App.py")
+
+# ── Lookup helper: society_name → full static society dict ──
+SOCIETIES_BY_NAME = {s["name"]: s for s in SOCIETIES}
+
+# ── Load saved societies from Supabase (persists across refresh) ──
+if "saved_societies" not in st.session_state:
+    try:
+        result = supabase.table("interested_societies").select("society_name, match_pct").eq(
+            "user_id", st.session_state["user_id"]
+        ).execute()
+
+        rebuilt = []
+        if result.data:
+            for row in result.data:
+                base = SOCIETIES_BY_NAME.get(row["society_name"])
+                if base:
+                    rebuilt.append({
+                        "name": base["name"],
+                        "domain": base["domain"],
+                        "commitment_per_week": base["commitment_per_week"],
+                        "match_pct": row["match_pct"]
+                    })
+        st.session_state["saved_societies"] = rebuilt
+    except:
+        st.session_state["saved_societies"] = []
 
 # ── Sidebar ──
 with st.sidebar:
@@ -224,6 +238,12 @@ else:
 
         with col3:
             if st.button("Remove", key=f"remove_{i}"):
+                try:
+                    supabase.table("interested_societies").delete().eq(
+                        "user_id", st.session_state["user_id"]
+                    ).eq("society_name", society["name"]).execute()
+                except:
+                    pass
                 st.session_state["saved_societies"].pop(i)
                 st.rerun()
 
@@ -279,15 +299,22 @@ else:
             st.markdown(f"""
             <div class="burnout-advice">{advice}</div>
             <div style="margin-top:0.8rem;">
-                <div style="color:#C99DA3; font-size:0.78rem; margin-bottom:0.3rem;">
+                <div style="color:#C99DA3; font-size:0.78rem; margin-bottom:0.4rem;">
                     {sum(s['commitment_per_week'] for s in saved)} hrs/week selected 
                     out of your {available_hrs} hrs/week available
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            prog_col, _ = st.columns([2, 1])
+
+            # ── Custom progress bar: single bar, narrower, status-colored ──
+            bar_width = min(burnout_pct, 100)
+            prog_col, _ = st.columns([1, 2])
             with prog_col:
-                st.progress(min(burnout_pct / 100, 1.0))
+                st.markdown(f"""
+                <div style="background:#1a1414; border-radius:10px; height:8px; width:100%; overflow:hidden;">
+                    <div style="background:{color}; width:{bar_width}%; height:100%; border-radius:10px;"></div>
+                </div>
+                """, unsafe_allow_html=True)
 
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -299,13 +326,20 @@ else:
             <div class="section-title">Best Combination Suggestion</div>
         """, unsafe_allow_html=True)
 
-        combos, error = best_combinations(saved, available_hrs)
+        combos, error, zone = best_combinations(saved, available_hrs)
 
         if error:
             st.markdown(f"""
             <p style="color:#C99DA3; font-size:0.88rem;">{error}</p>
             """, unsafe_allow_html=True)
         else:
+            if zone == "manageable":
+                st.markdown("""
+                <p style="color:#FFD54F; font-size:0.85rem; font-weight:600; margin-bottom:0.9rem;">
+                    ⚠️ Nothing fits comfortably within 80% of your hours — showing options that stay within your full available hours instead.
+                </p>
+                """, unsafe_allow_html=True)
+
             medals = ["1", "2", "3"]
             for idx, combo in enumerate(combos):
                 names = [s['name'] for s in combo['societies']]

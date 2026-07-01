@@ -35,52 +35,71 @@ def burnout_calculator(selected_societies, available_hrs):
 # ─── BEST COMBINATION LOGIC ───────────────────
 from itertools import combinations
 
-def best_combinations(selected_societies, available_hrs):
+def _find_valid_combos(selected_societies, limit):
     """
-    Returns top 3 best combinations within comfortable zone
+    Helper — saari combinations (size 2+) find karta hai jo
+    total_hrs <= limit ke andar fit hoti hain, ranked by
+    match% > domain variety > low hours
     """
-    
-    # Edge cases
-    if len(selected_societies) == 0:
-        return None, "No societies saved yet. "
-    
-    if len(selected_societies) == 1:
-        return None, "Save at least 2 societies for suggestions💡"
-    
-    comfortable_limit = available_hrs * 0.80  # 80% threshold
-    
     valid_combos = []
-    
-    # Saari possible combinations try karo (size 2 se max tak)
+
     for size in range(2, len(selected_societies) + 1):
         for combo in combinations(selected_societies, size):
-            total_hrs = sum(s['commitment_per_week'] 
+            total_hrs = sum(s['commitment_per_week']
                            for s in combo)
-            
-            if total_hrs <= comfortable_limit:
-                # Domain variety count karo
+
+            if total_hrs <= limit:
                 domains = set(s['domain'] for s in combo)
                 avg_match = sum(s.get('match_pct', 0) for s in combo) / len(combo)
-                
+
                 valid_combos.append({
                     'societies': combo,
                     'total_hrs': total_hrs,
                     'domain_variety': len(domains),
                     'avg_match': avg_match
                 })
-    
-    if not valid_combos:
-        return None, "No combination fits in comfortable zone - try adding more hours or removing societies ⚠️"
-    
-    # Rank karo: match% > domain variety > low hours
+
     valid_combos.sort(key=lambda x: (
         -x['avg_match'],      # match % high ho
         -x['domain_variety'], # domains varied hon
         x['total_hrs']        # hours kam hon
     ))
-    
-    # Top 3 return karo
-    return valid_combos[:3], None
+
+    return valid_combos
+
+
+def best_combinations(selected_societies, available_hrs):
+    """
+    Returns top 3 best combinations.
+    Pehle comfortable zone (<=80%) try karta hai, agar wahan
+    kuch nahi milta toh manageable zone (<=100%) mein try karta hai.
+
+    Returns: (combos, error, zone)
+        zone = "comfortable" | "manageable" | None (jab error ho)
+    """
+
+    # Edge cases
+    if len(selected_societies) == 0:
+        return None, "No societies saved yet. ", None
+
+    if len(selected_societies) == 1:
+        return None, "Save at least 2 societies for suggestions💡", None
+
+    comfortable_limit = available_hrs * 0.80  # 80% threshold
+    manageable_limit = available_hrs * 1.00   # 100% threshold
+
+    # ── Try comfortable zone first ──
+    comfortable_combos = _find_valid_combos(selected_societies, comfortable_limit)
+    if comfortable_combos:
+        return comfortable_combos[:3], None, "comfortable"
+
+    # ── Fallback: manageable zone (80-100%) ──
+    manageable_combos = _find_valid_combos(selected_societies, manageable_limit)
+    if manageable_combos:
+        return manageable_combos[:3], None, "manageable"
+
+    return None, "No combination fits even within your full available hours - try adding more hours or removing societies ⚠️", None
+
 
 def get_burnout_advice(burnout_pct, combos):
     """
@@ -203,10 +222,11 @@ if __name__ == "__main__":
     print(f"Burnout: {pct}% → {status}")
     
     # Combination test
-    combos, error = best_combinations(test_societies, 25)
+    combos, error, zone = best_combinations(test_societies, 25)
     if error:
         print(error)
     else:
+        print(f"Zone: {zone}")
         for i, c in enumerate(combos):
             names = [s['name'] for s in c['societies']]
             print(f"Combo {i+1}: {names} | {c['total_hrs']}hrs | {c['avg_match']}% match")
@@ -233,4 +253,3 @@ if __name__ == "__main__":
             print(f"\nThese people are interested in the same society as you \n 🎯{society}")
             for p in people:
                 print(f"   → {p['name']} — {p['linkedin_url']}")
-
