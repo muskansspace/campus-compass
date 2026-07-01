@@ -156,23 +156,6 @@ if not st.session_state.get("user_name"):
     except:
         pass
 
-# ── Load already-saved societies from interested_societies table ──
-# (so the "already in favourites" check below works correctly after a refresh)
-if "saved_societies" not in st.session_state:
-    try:
-        result = supabase.table("interested_societies").select("society_name, match_pct").eq(
-            "user_id", st.session_state["user_id"]
-        ).execute()
-        if result.data:
-            st.session_state["saved_societies"] = [
-                {"name": r["society_name"], "match_pct": r["match_pct"]}
-                for r in result.data
-            ]
-        else:
-            st.session_state["saved_societies"] = []
-    except:
-        st.session_state["saved_societies"] = []
-
 # ── Sidebar ──
 with st.sidebar:
     st.markdown(f"""
@@ -290,16 +273,6 @@ else:
                         s["name"] for s in st.session_state["saved_societies"]
                     ]:
                         st.session_state["saved_societies"].append(society)
-                        try:
-                            supabase.table("interested_societies").insert({
-                                "user_id": st.session_state["user_id"],
-                                "society_name": society["name"],
-                                "match_pct": society["match_pct"],
-                                "domain": society["domain"],
-                                "commitment_per_week": society["commitment_per_week"]
-                            }).execute()
-                        except:
-                            pass
                         st.success(f"{society['name']} saved to favourites!")
                     else:
                         st.info("Already in your favourites!")

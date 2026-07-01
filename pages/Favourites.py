@@ -1,7 +1,6 @@
 import streamlit as st
 from supabase_client import supabase
 from analytics import burnout_calculator, best_combinations, get_burnout_advice
-from societies_data import SOCIETIES
 
 st.set_page_config(
     page_title="Campus Compass | Favourites",
@@ -139,31 +138,6 @@ st.markdown("""
 if not st.session_state.get("logged_in"):
     st.switch_page("App.py")
 
-# ── Lookup helper: society_name → full static society dict ──
-SOCIETIES_BY_NAME = {s["name"]: s for s in SOCIETIES}
-
-# ── Load saved societies from Supabase (persists across refresh) ──
-if "saved_societies" not in st.session_state:
-    try:
-        result = supabase.table("interested_societies").select("society_name, match_pct").eq(
-            "user_id", st.session_state["user_id"]
-        ).execute()
-
-        rebuilt = []
-        if result.data:
-            for row in result.data:
-                base = SOCIETIES_BY_NAME.get(row["society_name"])
-                if base:
-                    rebuilt.append({
-                        "name": base["name"],
-                        "domain": base["domain"],
-                        "commitment_per_week": base["commitment_per_week"],
-                        "match_pct": row["match_pct"]
-                    })
-        st.session_state["saved_societies"] = rebuilt
-    except:
-        st.session_state["saved_societies"] = []
-
 # ── Sidebar ──
 with st.sidebar:
     st.markdown(f"""
@@ -238,12 +212,6 @@ else:
 
         with col3:
             if st.button("Remove", key=f"remove_{i}"):
-                try:
-                    supabase.table("interested_societies").delete().eq(
-                        "user_id", st.session_state["user_id"]
-                    ).eq("society_name", society["name"]).execute()
-                except:
-                    pass
                 st.session_state["saved_societies"].pop(i)
                 st.rerun()
 
