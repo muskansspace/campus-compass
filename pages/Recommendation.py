@@ -189,7 +189,7 @@ SOCIETIES = [
         "description": "Aligns with IEEE WIE global network; promotes women in engineering and STEM.",
         "activities": "Speaker sessions, hands-on workshops on AR/VR, 3D printing, drone making",
         "skills_required": "Interest in technical research, hardware, emerging tech (AR/VR)",
-        "commitment_hrs": 5,
+        "commitment_per_week": 5,
         "commitment_text": "High during flagship weeks; none during exams",
         "recruitment_month": "August-September",
         "instagram": "https://www.instagram.com/ieeeigdtuw/",
@@ -202,7 +202,7 @@ SOCIETIES = [
         "description": "Design club focused on design thinking before students transition into development.",
         "activities": "Cohorts, hackathons, workshops, quizzes, design showcases",
         "skills_required": "Basic Canva proficiency, colour theory, curiosity to learn",
-        "commitment_hrs": 4.5,
+        "commitment_per_week": 4.5,
         "commitment_text": "~4-5 hrs/week during cohorts",
         "recruitment_month": "Induction period",
         "instagram": "https://www.instagram.com/designclubigdtuw/",
@@ -215,7 +215,7 @@ SOCIETIES = [
         "description": "Musical society with 3 performance teams and PR and Media team.",
         "activities": "Riyaz sessions, Garba Night, Halloween events, flash mobs, inter-college competitions",
         "skills_required": "Passion for music; good voice/instrument skills; PR/Media skills",
-        "commitment_hrs": 12,
+        "commitment_per_week": 12,
         "commitment_text": "Varies — regular riyaz + increased during events",
         "recruitment_month": "August",
         "instagram": "https://www.instagram.com/tarannum.igdtuw/",
@@ -228,7 +228,7 @@ SOCIETIES = [
         "description": "Dramatics society that teaches life lessons through theatre and street plays.",
         "activities": "Aaghaz Street Play, Bachpan-e-Karvaan (Children's Day event)",
         "skills_required": "Eagerness to learn; no prior acting experience required",
-        "commitment_hrs": 3,
+        "commitment_per_week": 3,
         "commitment_text": "2-3 hrs/day (alternating timings)",
         "recruitment_month": "Mid August - Early September",
         "instagram": "https://www.instagram.com/rahnuma_igdtuw/",
@@ -241,7 +241,7 @@ SOCIETIES = [
         "description": "Official dance society of IGDTUW — platform for dance skill-building and competitions.",
         "activities": "Dance workshops, inter-college competitions, cultural fest performances",
         "skills_required": "Passion for dance, dedication, teamwork, creativity",
-        "commitment_hrs": 9,
+        "commitment_per_week": 9,
         "commitment_text": "6-12 hrs/week",
         "recruitment_month": "August-September",
         "instagram": "https://www.instagram.com/hypnotics_igdtuw/",
@@ -254,7 +254,7 @@ SOCIETIES = [
         "description": "Women-led finance and economics society promoting financial literacy through events.",
         "activities": "Payload, Bidding Blitz, Finopoly, Money Masterclass, FinWeek",
         "skills_required": "Basic finance and economics understanding; enthusiasm, proactiveness",
-        "commitment_hrs": 2.5,
+        "commitment_per_week": 2.5,
         "commitment_text": "2-3 hrs/week",
         "recruitment_month": "Late September - Early October",
         "instagram": "https://www.instagram.com/finivesta_igdtuw/",
@@ -267,7 +267,7 @@ SOCIETIES = [
         "description": "Microsoft Learn Student Ambassador chapter empowering women technologists.",
         "activities": "Hackathons, webinars, Summer Bootcamp, Networking Nights, Microsoft office sessions",
         "skills_required": "Passion for tech, interest in leadership and community building",
-        "commitment_hrs": 2,
+        "commitment_per_week": 2,
         "commitment_text": "1-2 hrs/week",
         "recruitment_month": "June (1st years)",
         "instagram": "https://www.instagram.com/msc.igdtuw/",
@@ -280,7 +280,7 @@ SOCIETIES = [
         "description": "Art and writing society providing a creative platform for expression and storytelling.",
         "activities": "Art and writing competitions, slam poetry, creative workshops",
         "skills_required": "Sketching, graphic design, creative writing, poetry, event management",
-        "commitment_hrs": 3,
+        "commitment_per_week": 3,
         "commitment_text": "2-4 hrs/week",
         "recruitment_month": "Beginning of academic session",
         "instagram": None,
@@ -293,7 +293,7 @@ SOCIETIES = [
         "description": "Creative society focused on public speaking and literary exposure.",
         "activities": "Aarohan (annual lit fest), IGDTUMUN, mock Youth Parliaments",
         "skills_required": "Basic Hindi and English, awareness of current topics",
-        "commitment_hrs": 2,
+        "commitment_per_week": 2,
         "commitment_text": "Monthly/event-based",
         "recruitment_month": "August-October",
         "instagram": None,
@@ -306,7 +306,7 @@ SOCIETIES = [
         "description": "One of IGDTUW's oldest technical societies; fosters learning in tech and innovation.",
         "activities": "ACM Research Internship, workshops, bootcamps, hackathons, open-source initiatives",
         "skills_required": "Enthusiasm to learn; teamwork; basic domain knowledge preferred",
-        "commitment_hrs": 3,
+        "commitment_per_week": 3,
         "commitment_text": "2-3 hrs/week (reduced during exams)",
         "recruitment_month": "August-September",
         "instagram": "https://www.instagram.com/acm_igdtuw/",
@@ -319,7 +319,7 @@ SOCIETIES = [
         "description": "Student-led organization for community service, leadership, and global networking.",
         "activities": "Dear Zindagi (mental health fest), blood donation camps, NGO outreach",
         "skills_required": "Communication, leadership, event planning; no prior experience needed",
-        "commitment_hrs": 2,
+        "commitment_per_week": 2,
         "commitment_text": "Flexible/volunteer-based",
         "recruitment_month": "August-September",
         "instagram": None,
@@ -332,7 +332,7 @@ SOCIETIES = [
         "description": "Student chapter of Society of Women Engineers empowering women in engineering.",
         "activities": "Workshops, bootcamps, expert talks, mentorship programs, hackathons",
         "skills_required": "Teamwork, communication, interest in tech and leadership",
-        "commitment_hrs": 4,
+        "commitment_per_week": 4,
         "commitment_text": "Regular: 2-4 hrs/week; Core: 4-8 hrs/week",
         "recruitment_month": "August-September",
         "instagram": None,
@@ -345,7 +345,7 @@ SOCIETIES = [
         "description": "Student-led technical society focused on hands-on learning and industry exposure.",
         "activities": "Technical workshops, expert talks, industry sessions, project-based learning",
         "skills_required": "Curiosity and willingness to learn; prior experience is a plus",
-        "commitment_hrs": 3.5,
+        "commitment_per_week": 3.5,
         "commitment_text": "2-5 hrs/week (more during events)",
         "recruitment_month": "August-September",
         "instagram": None,
@@ -358,7 +358,7 @@ SOCIETIES = [
         "description": "Technical society dedicated to building a strong tech community through mentorship.",
         "activities": "DSA Bootcamps, Open Source Week, resume building, pre-placement prep",
         "skills_required": "Basic programming; Figma/Canva for design; communication for sponsorship",
-        "commitment_hrs": 4,
+        "commitment_per_week": 4,
         "commitment_text": "3-5 hrs/week (more during events)",
         "recruitment_month": "September-October",
         "instagram": None,
@@ -371,7 +371,7 @@ SOCIETIES = [
         "description": "Student-led entrepreneurship cell fostering innovation and startup culture.",
         "activities": "Founder talks, expert workshops, ideathons, case study competitions",
         "skills_required": "Communication, teamwork, leadership, problem-solving, organizational skills",
-        "commitment_hrs": 13.5,
+        "commitment_per_week": 13.5,
         "commitment_text": "12-15 hrs/week (highest commitment)",
         "recruitment_month": "August-September",
         "instagram": None,
@@ -384,7 +384,7 @@ SOCIETIES = [
         "description": "Social entrepreneurship society building scalable solutions for real-world challenges.",
         "activities": "Enactova (National Business Plan Competition), Innovation Fair, community outreach",
         "skills_required": "Communication, teamwork, problem-solving, creativity, research skills",
-        "commitment_hrs": 4,
+        "commitment_per_week": 4,
         "commitment_text": "3-5 hrs/week (more during major events)",
         "recruitment_month": "August-September",
         "instagram": None,
@@ -504,12 +504,22 @@ else:
                     key=f"save_{society['name']}",
                     use_container_width=True
                 ):
-                    if "saved_societies" not in st.session_state:
-                        st.session_state["saved_societies"] = []
-                    if society["name"] not in [
-                        s["name"] for s in st.session_state["saved_societies"]
-                    ]:
-                        st.session_state["saved_societies"].append(society)
-                        st.success(f"{society['name']} saved to favourites!")
-                    else:
+                    existing = supabase.table("interested_societies").select("id").eq(
+                        "user_id", st.session_state["user_id"]
+                    ).eq("society_name", society["name"]).execute()
+
+                    if existing.data:
                         st.info("Already in your favourites!")
+                    else:
+                        supabase.table("interested_societies").insert({
+                            "user_id": st.session_state["user_id"],
+                            "society_name": society["name"],
+                            "match_pct": society["match_pct"],
+                            "commitment_per_week": society["commitment_per_week"]
+                        }).execute()
+
+                        if "saved_societies" not in st.session_state:
+                            st.session_state["saved_societies"] = []
+                        st.session_state["saved_societies"].append(society)
+
+                        st.success(f"{society['name']} saved to favourites!")

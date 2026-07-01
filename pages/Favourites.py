@@ -173,8 +173,34 @@ st.markdown("""
 </p>
 """, unsafe_allow_html=True)
 
-# ── Get saved societies ──
-saved = st.session_state.get("saved_societies", [])
+# ── Get saved societies from Supabase ──
+try:
+    result = supabase.table("interested_societies").select("*").eq(
+        "user_id", st.session_state["user_id"]
+    ).execute()
+    saved_rows = result.data or []
+except Exception as e:
+    saved_rows = []
+    st.error(f"Could not load saved societies: {e}")
+
+# Enrich with domain (and anything else needed) from the societies table
+saved = []
+if saved_rows:
+    society_names = [row["society_name"] for row in saved_rows]
+    societies_result = supabase.table("societies").select("*").in_(
+        "society_name", society_names
+    ).execute()
+    societies_by_name = {s["society_name"]: s for s in (societies_result.data or [])}
+
+    for row in saved_rows:
+        full = societies_by_name.get(row["society_name"], {})
+        saved.append({
+            "id": row["id"],
+            "name": row["society_name"],
+            "match_pct": row["match_pct"],
+            "commitment_per_week": row["commitment_per_week"],
+            "domain": full.get("domain", "Unknown"),
+        })
 
 # ── Empty state ──
 if not saved:
@@ -224,8 +250,13 @@ else:
 
         with col3:
             if st.button("Remove", key=f"remove_{i}"):
-                st.session_state["saved_societies"].pop(i)
-                st.rerun()
+                try:
+                    supabase.table("interested_societies").delete().eq(
+                        "id", society["id"]
+                    ).execute()
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Could not remove: {e}")
 
         st.markdown("<hr style='border-color:#3d2e38; margin:0.3rem 0;'>", unsafe_allow_html=True)
 
