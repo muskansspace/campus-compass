@@ -268,17 +268,22 @@ else:
                     use_container_width=True
                 ):
                     if "saved_societies" not in st.session_state:
-                        st.session_state["saved_societies"] = []
+                        response = supabase.table("interested_societies") \
+                            .select("*") \
+                            .eq("user_id", st.session_state["user_id"]) \
+                            .execute()
+                        st.session_state["saved_societies"] = response.data
                     if society["name"] not in [
-                        s["name"] for s in st.session_state["saved_societies"]
+                        s.get("society_name", s.get("society_name")) for s in st.session_state["saved_societies"]
                     ]:
                         st.session_state["saved_societies"].append(society)
                         try:
-                            supabase.table("interested_societies").insert({
+                            supabase.table("interested_societies").upsert({
                                 "user_id": st.session_state["user_id"],
                                 "society_name": society["name"],
-                                "match_pct": society["match_pct"]
-                            }).execute()
+                                "match_pct": society["match_pct"],
+                                "domain": society["domain"]
+                            }, on_conflict="user_id,society_name", ignore_duplicates=True).execute()
                         except Exception as e:
                             st.error(f"Insert failed: {e}")
                         st.success(f"{society['name']} saved to favourites!")

@@ -198,7 +198,7 @@ else:
         with col1:
             st.markdown(f"""
             <div>
-                <div class="society-row-name">{society['name']}</div>
+                <div class="society-row-name">{society['society_name']}</div>
                 <div class="society-row-domain">{society['domain']}</div>
             </div>
             """, unsafe_allow_html=True)
