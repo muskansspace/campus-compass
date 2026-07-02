@@ -273,6 +273,14 @@ else:
                         s["name"] for s in st.session_state["saved_societies"]
                     ]:
                         st.session_state["saved_societies"].append(society)
+                        try:
+                            supabase.table("interested_societies").insert({
+                                "user_id": st.session_state["user_id"],
+                                "society_name": society["name"],
+                                "match_pct": society["match_pct"]
+                            }).execute()
+                        except Exception as e:
+                            st.error(f"Insert failed: {e}")
                         st.success(f"{society['name']} saved to favourites!")
                     else:
                         st.info("Already in your favourites!")
