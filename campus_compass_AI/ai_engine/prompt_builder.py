@@ -2,9 +2,18 @@ from ai_engine.models import StudentProfile
 
 
 class PromptBuilder:
+    """
+    Builds structured prompts for the AI model
+    to generate personalized society recommendations.
+    """
 
     @staticmethod
     def build_society_summary(student: StudentProfile, recommendation: dict):
+        """
+        Creates a structured prompt containing the
+        student's profile and recommendation details
+        for the AI model.
+        """
 
         prompt = f"""
 You are an AI Career Mentor for Campus Compass.
