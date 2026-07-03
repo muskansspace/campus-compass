@@ -230,7 +230,24 @@ class RecommendationEngine:
         )
 
         return round(final_score, 2)
-        # -------------------------------------------------
+    # -------------------------------------------------
+    # Recommendation Level
+    # -------------------------------------------------
+
+    def get_recommendation_level(self, score):
+
+        if score >= 80:
+            return "Excellent Match 🌟"
+
+        elif score >= 60:
+            return "Strong Match ✅"
+
+        elif score >= 40:
+            return "Good Match 👍"
+
+        else:
+            return "Explore if Interested 📘"
+    # -------------------------------------------------
     # Recommendation Engine
     # -------------------------------------------------
 
@@ -277,6 +294,7 @@ class RecommendationEngine:
                 bonus_score
 
             )
+            level = self.get_recommendation_level(final_score)
 
             reason = []
 
@@ -298,37 +316,40 @@ class RecommendationEngine:
             recommendations.append({
 
                 "society_name":
-                    society["society_name"],
+                society["society_name"],
 
                 "domain":
-                    society["domain"],
+                society["domain"],
 
                 "description":
-                    society["description"],
+                society["description"],
 
                 "activities":
-                    society["activities"],
+                society["activities"],
 
                 "score":
-                    final_score,
+                final_score,
+
+                "recommendation_level":
+                level,
 
                 "matched_skills":
-                    skill_result["matched"],
+                skill_result["matched"],
 
                 "missing_skills":
-                    skill_result["missing"],
+                skill_result["missing"],
 
                 "matched_interests":
-                    domain_result["matched"],
+                domain_result["matched"],
 
                 "reason":
-                    ", ".join(reason)
+                ", ".join(reason)
 
-                    if reason
+        if reason
 
-                    else "General Recommendation"
+        else "General Recommendation"
 
-            })
+})
 
         recommendations.sort(
 

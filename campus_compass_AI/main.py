@@ -69,7 +69,7 @@ print("============================\n")
 
 print(f"Society : {recommendation['society_name']}")
 print(f"Score   : {recommendation['score']}%")
-
+print(f"Level   : {recommendation['recommendation_level']}")
 print("\n============================")
 print("AI RESPONSE")
 print("============================\n")
