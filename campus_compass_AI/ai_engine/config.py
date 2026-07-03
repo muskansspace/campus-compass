@@ -15,8 +15,6 @@ load_dotenv(BASE_DIR / ".env")
 # -------------------------------------------------
 
 DATA_FILE = BASE_DIR / "data" / "igdtuw_societies_final.xlsx"
-print("BASE_DIR:", BASE_DIR)
-print("DATA_FILE:", DATA_FILE)
 
 # -------------------------------------------------
 # Recommendation Engine Weights
@@ -34,6 +32,3 @@ BONUS_WEIGHT = 10
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL")
 MODEL_ID = os.getenv("MODEL_ID")
-
-print("OPENAI_BASE_URL:", OPENAI_BASE_URL)
-print("MODEL_ID:", MODEL_ID)
