@@ -339,3 +339,15 @@ class RecommendationEngine:
         )
 
         return recommendations
+    # -------------------------------------------------
+    # Best Recommendation
+    # -------------------------------------------------
+
+    def get_best_recommendation(self):
+
+        recommendations = self.recommend()
+
+        if not recommendations:
+            return None
+
+        return recommendations[0]
