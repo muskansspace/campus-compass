@@ -48,12 +48,21 @@ prompt = PromptBuilder.build_society_summary(
 client = BedrockClient()
 
 response = client.generate(prompt)
+if "error" in response:
+    print("\n============================")
+    print("AI ERROR")
+    print("============================")
+    print(response["error"])
+    exit()
 
 
 # -------------------------------------------------
 # Display Results
 # -------------------------------------------------
-
+if "error" in response:  #Message--> API key expired
+    print("\nAI ERROR")
+    print(response["error"])
+    exit()
 print("\n============================")
 print("TOP RECOMMENDED SOCIETY")
 print("============================\n")

@@ -11,21 +11,34 @@ from ai_engine.config import (
 class BedrockClient:
 
     def __init__(self):
+
         self.client = OpenAI(
             api_key=OPENAI_API_KEY,
-            base_url=OPENAI_BASE_URL,
+            base_url=OPENAI_BASE_URL
         )
 
     def generate(self, prompt):
+        
 
-        response = self.client.responses.create(
-            model=MODEL_ID,
-            input=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        )
+        try:
 
-        return json.loads(response.output_text)
+            response = self.client.responses.create(
+
+                model=MODEL_ID,
+
+                input=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+
+            )
+
+            return json.loads(response.output_text)
+
+        except Exception as e:
+
+            return {
+                "error": str(e)
+            }
