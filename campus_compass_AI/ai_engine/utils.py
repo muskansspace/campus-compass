@@ -1,7 +1,13 @@
 import re
 
+"""
+Utility functions for extracting predefined
+keywords from text used in the recommendation engine.
+"""
+
 # All possible skills we want to detect
 KNOWN_KEYWORDS = [
+
     # Programming Languages
     "python",
     "java",
@@ -59,9 +65,11 @@ KNOWN_KEYWORDS = [
 ]
 
 
-import re
-
 def extract_keywords(text):
+    """
+    Extracts predefined keywords from text
+    using case-insensitive whole-word matching.
+    """
 
     if text is None:
         return set()
@@ -74,17 +82,9 @@ def extract_keywords(text):
 
     for keyword in KNOWN_KEYWORDS:
 
-        # Match whole words or exact phrases
         pattern = r"\b" + re.escape(keyword) + r"\b"
 
         if re.search(pattern, text):
-            keywords.add(keyword)
-
-    return keywords
-
-    # Search for complete keywords
-    for keyword in KNOWN_KEYWORDS:
-        if keyword in text:
             keywords.add(keyword)
 
     return keywords
