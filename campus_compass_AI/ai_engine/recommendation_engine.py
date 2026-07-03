@@ -13,6 +13,10 @@ from ai_engine.utils import extract_keywords
 
 
 class RecommendationEngine:
+    """
+    Generates personalized society recommendations
+    based on a student's profile.
+    """
 
     def __init__(self, student: StudentProfile):
         self.student = student
@@ -23,6 +27,9 @@ class RecommendationEngine:
     # -------------------------------------------------
 
     def load_societies(self):
+        """
+        Loads the society dataset.
+        """
         return pd.read_excel(DATA_FILE)
 
     # -------------------------------------------------
@@ -30,14 +37,18 @@ class RecommendationEngine:
     # -------------------------------------------------
 
     def get_student_skills(self):
-
+        """
+        Returns student skills in lowercase.
+        """
         return {
             skill.lower().strip()
             for skill in self.student.skills
         }
 
     def get_student_interests(self):
-
+        """
+        Returns student interests in lowercase.
+        """
         return {
             interest.lower().strip()
             for interest in self.student.interests
@@ -48,13 +59,15 @@ class RecommendationEngine:
     # -------------------------------------------------
 
     def calculate_skill_score(self, society_skills):
+        """
+        Calculates skill match score.
+        """
 
         student_skills = self.get_student_skills()
 
         society_keywords = extract_keywords(society_skills)
 
-        if len(society_keywords) == 0:
-
+        if not society_keywords:
             return {
                 "score": 0,
                 "matched": [],
@@ -73,13 +86,9 @@ class RecommendationEngine:
         ) * 100
 
         return {
-
             "score": round(score, 2),
-
             "matched": sorted(list(matched)),
-
             "missing": sorted(list(missing))
-
         }
 
     # -------------------------------------------------
@@ -87,19 +96,18 @@ class RecommendationEngine:
     # -------------------------------------------------
 
     def calculate_domain_score(self, domain):
+        """
+        Calculates domain match score.
+        """
 
         student_interests = self.get_student_interests()
 
         domain_keywords = extract_keywords(domain)
 
-        if len(domain_keywords) == 0:
-
+        if not domain_keywords:
             return {
-
                 "score": 0,
-
                 "matched": []
-
             }
 
         matched = student_interests.intersection(
@@ -112,31 +120,37 @@ class RecommendationEngine:
         ) * 100
 
         return {
-
             "score": round(score, 2),
-
             "matched": sorted(list(matched))
-
         }
-        # -------------------------------------------------
+
+    # -------------------------------------------------
     # Activity Matching
     # -------------------------------------------------
 
     def calculate_activity_score(self, activities):
+        """
+        Calculates activity match score.
+        """
 
         student_interests = self.get_student_interests()
 
         activity_keywords = extract_keywords(activities)
 
-        if len(activity_keywords) == 0:
+        if not activity_keywords:
             return {
                 "score": 0,
                 "matched": []
             }
 
-        matched = student_interests.intersection(activity_keywords)
+        matched = student_interests.intersection(
+            activity_keywords
+        )
 
-        score = (len(matched) / len(activity_keywords)) * 100
+        score = (
+            len(matched)
+            / len(activity_keywords)
+        ) * 100
 
         return {
             "score": round(score, 2),
@@ -148,13 +162,16 @@ class RecommendationEngine:
     # -------------------------------------------------
 
     def calculate_time_score(self, commitment):
+        """
+        Calculates time compatibility score.
+        """
 
         if pd.isna(commitment):
             return 100
 
         try:
             commitment = float(commitment)
-        except:
+        except ValueError:
             return 100
 
         difference = abs(
@@ -164,17 +181,20 @@ class RecommendationEngine:
         if difference <= 1:
             return 100
 
-        elif difference <= 3:
+        if difference <= 3:
             return 70
 
-        else:
-            return 40
+        return 40
 
     # -------------------------------------------------
     # Bonus Score
     # -------------------------------------------------
 
     def calculate_bonus_score(self, society):
+        """
+        Awards bonus score if the student's
+        branch aligns with the society.
+        """
 
         bonus = 0
 
@@ -206,6 +226,9 @@ class RecommendationEngine:
         time_score,
         bonus_score
     ):
+        """
+        Calculates the final recommendation score.
+        """
 
         final_score = (
 
@@ -230,11 +253,15 @@ class RecommendationEngine:
         )
 
         return round(final_score, 2)
-    # -------------------------------------------------
+
+        # -------------------------------------------------
     # Recommendation Level
     # -------------------------------------------------
 
     def get_recommendation_level(self, score):
+        """
+        Returns a confidence level for the recommendation.
+        """
 
         if score >= 80:
             return "Excellent Match 🌟"
@@ -247,19 +274,19 @@ class RecommendationEngine:
 
         else:
             return "Explore if Interested 📘"
+
     # -------------------------------------------------
     # Recommendation Engine
     # -------------------------------------------------
 
     def recommend(self):
+        """
+        Generates and ranks society recommendations.
+        """
 
         recommendations = []
 
         for _, society in self.societies.iterrows():
-
-            # -----------------------------
-            # Individual Scores
-            # -----------------------------
 
             skill_result = self.calculate_skill_score(
                 society["skills_preferred_required"]
@@ -282,93 +309,83 @@ class RecommendationEngine:
             )
 
             final_score = self.calculate_final_score(
-
                 skill_result["score"],
-
                 domain_result["score"],
-
                 activity_result["score"],
-
                 time_score,
-
                 bonus_score
-
             )
-            level = self.get_recommendation_level(final_score)
+
+            level = self.get_recommendation_level(
+                final_score
+            )
 
             reason = []
 
             if skill_result["matched"]:
-                reason.append(
-                    "Skill match"
-                )
+                reason.append("Skill match")
 
             if domain_result["matched"]:
-                reason.append(
-                    "Interest alignment"
-                )
+                reason.append("Interest alignment")
 
             if time_score >= 70:
-                reason.append(
-                    "Suitable commitment"
-                )
+                reason.append("Suitable commitment")
 
             recommendations.append({
 
                 "society_name":
-                society["society_name"],
+                    society["society_name"],
 
                 "domain":
-                society["domain"],
+                    society["domain"],
 
                 "description":
-                society["description"],
+                    society["description"],
 
                 "activities":
-                society["activities"],
+                    society["activities"],
 
                 "score":
-                final_score,
+                    final_score,
 
                 "recommendation_level":
-                level,
+                    level,
 
                 "matched_skills":
-                skill_result["matched"],
+                    skill_result["matched"],
 
                 "missing_skills":
-                skill_result["missing"],
+                    skill_result["missing"],
 
                 "matched_interests":
-                domain_result["matched"],
+                    domain_result["matched"],
 
                 "reason":
-                ", ".join(reason)
+                    ", ".join(reason)
+                    if reason
+                    else "General Recommendation"
 
-        if reason
-
-        else "General Recommendation"
-
-})
+            })
 
         recommendations.sort(
-
             key=lambda x: x["score"],
-
             reverse=True
-
         )
 
         return recommendations
+
     # -------------------------------------------------
     # Best Recommendation
     # -------------------------------------------------
 
     def get_best_recommendation(self):
+        """
+        Returns the highest-ranked recommendation.
+        """
 
         recommendations = self.recommend()
 
         if not recommendations:
             return None
 
-        return recommendations[0]
+        return recommendations[0]  
