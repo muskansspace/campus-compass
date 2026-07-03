@@ -9,8 +9,16 @@ from ai_engine.config import (
 
 
 class BedrockClient:
+    """
+    Handles communication with the AWS Bedrock
+    OpenAI-compatible Responses API.
+    """
 
     def __init__(self):
+        """
+        Initializes the Bedrock client using
+        the configured API key and base URL.
+        """
 
         self.client = OpenAI(
             api_key=OPENAI_API_KEY,
@@ -18,21 +26,21 @@ class BedrockClient:
         )
 
     def generate(self, prompt):
-        
+        """
+        Sends a prompt to the configured model
+        and returns the generated JSON response.
+        """
 
         try:
 
             response = self.client.responses.create(
-
                 model=MODEL_ID,
-
                 input=[
                     {
                         "role": "user",
                         "content": prompt
                     }
                 ]
-
             )
 
             return json.loads(response.output_text)
@@ -40,5 +48,5 @@ class BedrockClient:
         except Exception as e:
 
             return {
-                "error": str(e)
+                "error": f"Bedrock API Error: {str(e)}"
             }
