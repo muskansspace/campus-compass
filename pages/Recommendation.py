@@ -1,243 +1,291 @@
 import streamlit as st
-import random
+from supabase_client import supabase
+from societies_data import SOCIETIES
 
 st.set_page_config(
-    page_title="Recommendations | M1·UI",
-    page_icon="💡",
-    layout="wide"
+    page_title="Campus Compass | Recommendations",
+    page_icon="🧭",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Initialize session state for recommendations
-if 'rec_history' not in st.session_state:
-    st.session_state.rec_history = []
-
-# Custom CSS - Dark theme with purple cards
 st.markdown("""
 <style>
-    /* Dark background */
-    .stApp {
-        background: #0e0e0e;
+    .stApp { background: #2A252A; }
+    .block-container { 
+        padding-top: 2rem !important;
+        max-width: 860px !important;
+        margin: 0 auto !important;
     }
 
-    /* Main header */
-    .main-header {
-        text-align: center;
-        margin-bottom: 2rem;
+    [data-testid="stSidebar"] {
+        background: #5E4955 !important;
+        border-right: 1px solid #996888 !important;
+    }
+    [data-testid="stSidebar"] * { color: #C6DDF0 !important; }
+    [data-testid="stSidebar"] .stButton > button {
+        background: transparent !important;
+        color: #C99DA3 !important;
+        border: 1px solid #996888 !important;
+        border-radius: 8px !important;
+        width: 100% !important;
+        font-weight: 500 !important;
+    }
+    [data-testid="stSidebar"] .stButton > button:hover {
+        background: #996888 !important;
+        color: #ffffff !important;
     }
 
-    .main-header h1 {
-        color: #e0e0e0;
-        font-size: 2.5rem;
-        margin-bottom: 0.5rem;
+    h1, h2, h3 { color: #C6DDF0 !important; }
+
+    /* Expander */
+    [data-testid="stExpander"] {
+        background: #5E4955 !important;
+        border: 1px solid #996888 !important;
+        border-radius: 16px !important;
+        margin-bottom: 0.8rem !important;
+    }
+    [data-testid="stExpander"]:hover {
+        border-color: #C99DA3 !important;
+    }
+    [data-testid="stExpander"] summary {
+        color: #C6DDF0 !important;
+        font-weight: 500 !important;
+        font-size: 0.95rem !important;
+    }
+    [data-testid="stExpander"] summary p,
+    [data-testid="stExpander"] summary span {
+        color: #C6DDF0 !important;
+    }
+    /* Fix dim text when expanded */
+    [data-testid="stExpander"] div {
+        color: #C6DDF0 !important;
     }
 
-    .main-header p {
-        color: #a0a0a0;
-        font-size: 1rem;
-    }
-
-    /* Recommendation Cards */
-    .rec-card {
-        background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
-        padding: 1.2rem;
-        border-radius: 16px;
-        margin: 0.8rem 0;
-        color: white;
-        transition: all 0.3s ease;
-        cursor: pointer;
-    }
-
-    .rec-card:hover {
-        transform: translateX(5px);
-        box-shadow: 0 5px 15px rgba(124, 58, 237, 0.3);
-    }
-
-    .rec-title {
-        font-size: 1.1rem;
-        font-weight: bold;
-        margin-bottom: 0.5rem;
-    }
-
-    .rec-category {
-        font-size: 0.8rem;
-        opacity: 0.9;
-        margin-bottom: 0.5rem;
-    }
-
-    .rec-match {
-        font-size: 0.75rem;
-        background: rgba(255,255,255,0.2);
-        padding: 0.2rem 0.5rem;
-        border-radius: 20px;
-        display: inline-block;
-    }
-
-    /* Section cards */
-    .section-card {
-        background: #1a1a1a;
-        padding: 1.5rem;
-        border-radius: 16px;
-        margin: 1rem 0;
-        border: 1px solid #2a2a2a;
-    }
-
-    .section-title {
-        color: #a855f7;
-        font-size: 1.2rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    /* Filter section */
-    .filter-card {
-        background: #222222;
-        padding: 1rem;
+    /* Detail section */
+    .detail-box {
+        background: #3d2e38;
         border-radius: 12px;
-        margin: 0.5rem 0;
+        padding: 1.2rem 1.4rem;
+        margin-top: 0.8rem;
+        margin-bottom: 0.8rem;
+    }
+    .detail-label {
+        color: #C99DA3;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 0.25rem;
+        margin-top: 0.8rem;
+    }
+    .detail-label:first-child { margin-top: 0; }
+    .detail-value {
+        color: #C6DDF0;
+        font-size: 0.88rem;
+        line-height: 1.55;
+        margin-bottom: 0;
     }
 
-    /* Button styling */
+    /* Progress bar */
+    .stProgress > div > div > div {
+    background: linear-gradient(90deg, #4CAF50, #81C784) !important;
+    border-radius: 10px !important;
+    height: 8px !important;
+}
+    .stProgress > div > div > div {
+        background: linear-gradient(90deg, #4CAF50, #81C784) !important;
+        border-radius: 10px !important;
+    }
+
+    /* Buttons */
     .stButton > button {
-        background: linear-gradient(135deg, #7c3aed, #a855f7);
-        color: white;
-        border: none;
-        padding: 0.5rem 1.5rem;
-        border-radius: 10px;
-        font-weight: 500;
-        transition: all 0.3s ease;
+        border-radius: 8px !important;
+        font-weight: 500 !important;
+        font-size: 0.85rem !important;
+        padding: 0.5rem 1rem !important;
+        transition: all 0.2s !important;
+        border: none !important;
+        background: #996888 !important;
+        color: #ffffff !important;
     }
-
     .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(124, 58, 237, 0.4);
+        background: #C99DA3 !important;
+        color: #2A252A !important;
     }
 
-    /* Selectbox styling */
-    .stSelectbox > div > div {
-        background: #222222;
-        color: white;
-        border-color: #444444;
+    /* Filter selectbox */
+    [data-baseweb="select"] > div {
+        background: #3d2e38 !important;
+        border: 1px solid #996888 !important;
+        border-radius: 8px !important;
+        color: #C6DDF0 !important;
+    }
+    [data-baseweb="menu"] { background: #3d2e38 !important; }
+    [data-baseweb="option"] {
+        background: #3d2e38 !important;
+        color: #C6DDF0 !important;
+    }
+    [data-baseweb="option"]:hover { background: #5E4955 !important; }
+    [data-baseweb="select"] svg {
+        fill: #C99DA3 !important;
+        opacity: 1 !important;
+    }
+    .stSelectbox label {
+        color: #C99DA3 !important;
+        font-size: 0.85rem !important;
     }
 
-    /* Remove white space */
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 0rem;
-    }
-
-    hr {
-        border-color: #2a2a2a;
-        margin: 1.5rem 0;
-    }
+    hr { border-color: #996888 !important; margin: 1.2rem 0 !important; }
+            
 </style>
 """, unsafe_allow_html=True)
 
-# Header
-st.markdown("""
-<div class="main-header">
-    <h1>💡 AI Recommendations</h1>
-    <p>Personalized suggestions based on your interests</p>
-</div>
-""", unsafe_allow_html=True)
+# ── Auth check ──
+if not st.session_state.get("logged_in"):
+    st.switch_page("App.py")
 
-st.markdown("---")
+# ── Fetch name if missing ──
+if not st.session_state.get("user_name"):
+    try:
+        result = supabase.table("profiles").select("name").eq(
+            "user_id", st.session_state["user_id"]
+        ).execute()
+        if result.data:
+            st.session_state["user_name"] = result.data[0]["name"]
+    except:
+        pass
 
-# Filters section
-col1, col2, col3 = st.columns([1, 1, 1])
-
-with col1:
-    st.markdown('<div class="filter-card">', unsafe_allow_html=True)
-    category = st.selectbox(
-        "📂 Category",
-        ["All", "Learning", "Productivity", "Health", "Career", "Lifestyle"]
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
-
-with col2:
-    st.markdown('<div class="filter-card">', unsafe_allow_html=True)
-    confidence = st.slider("🎯 Minimum Match %", 50, 100, 70)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-with col3:
-    st.markdown('<div class="filter-card">', unsafe_allow_html=True)
-    if st.button("🔄 Refresh Recommendations", use_container_width=True):
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-st.markdown("---")
-
-# Main content
-col1, col2 = st.columns([2, 1])
-
-with col1:
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">📌 Top Picks For You</div>', unsafe_allow_html=True)
-
-    # Recommendation data
-    recommendations = {
-        "Learning": {"title": "Advanced Python Course", "description": "Master Python with hands-on projects",
-                     "match": 94},
-        "Productivity": {"title": "Time Management Masterclass", "description": "Boost productivity by 200%",
-                         "match": 88},
-        "Health": {"title": "Daily Meditation Guide", "description": "15-min mindfulness routine", "match": 82},
-        "Career": {"title": "Portfolio Building Workshop", "description": "Stand out to employers", "match": 76},
-        "Lifestyle": {"title": "Work-Life Balance Tips", "description": "Achieve harmony in daily life", "match": 71}
-    }
-
-    # Display filtered recommendations
-    shown = 0
-    for rec_cat, rec_data in recommendations.items():
-        if (category == "All" or category == rec_cat) and rec_data['match'] >= confidence:
-            st.markdown(f"""
-            <div class="rec-card">
-                <div class="rec-title">{rec_data['title']}</div>
-                <div class="rec-category">{rec_cat}</div>
-                <div class="rec-match">🔍 {rec_data['match']}% match</div>
-                <div style="margin-top: 0.5rem; font-size: 0.9rem;">{rec_data['description']}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            shown += 1
-
-    if shown == 0:
-        st.info("No recommendations match your filters. Try adjusting the category or match percentage!")
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-with col2:
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">📊 Recommendation Stats</div>', unsafe_allow_html=True)
-
-    st.markdown("""
-    <div style="text-align: center; padding: 1rem;">
-        <div style="font-size: 2rem; color: #a855f7;">5</div>
-        <div style="color: #a0a0a0;">Available Picks</div>
+# ── Sidebar ──
+with st.sidebar:
+    st.markdown(f"""
+    <div style="padding: 1rem 0; text-align:center;">
+        <div style="font-size:1.8rem">🧭</div>
+        <p style="color:#C6DDF0; font-weight:600; margin:0.3rem 0;">Campus Compass</p>
+        <p style="color:#C99DA3; font-size:0.8rem;">{st.session_state.get('email','')}</p>
     </div>
+    <hr style="border-color:#996888; margin-bottom:1rem;">
     """, unsafe_allow_html=True)
 
-    st.markdown("---")
+    if st.button("Logout"):
+        st.session_state.clear()
+        st.switch_page("App.py")
 
-    st.markdown('<div class="section-title">💡 Pro Tips</div>', unsafe_allow_html=True)
+# ── Header ──
+name_display = st.session_state.get("user_name", "there")
+st.markdown(f"""
+<h1 style="color:#C6DDF0; margin-bottom:0.2rem;">
+    Recommendations for {name_display}
+</h1>
+<p style="color:#C99DA3; margin-bottom:1.5rem; font-size:0.95rem;">
+    Societies ranked by match with your profile. Click any card to explore more.
+</p>
+""", unsafe_allow_html=True)
 
-    tips = [
-        "✨ Lower match % for more recommendations",
-        "🎯 Higher match % for better quality",
-        "🔄 Refresh to see new suggestions",
-        "📊 Check back daily for updated picks"
-    ]
-
-    for tip in tips:
-        st.markdown(f'<div style="color: #a0a0a0; margin: 0.5rem 0;">• {tip}</div>', unsafe_allow_html=True)
-
-    st.markdown('</div>', unsafe_allow_html=True)
+# ── Filter ──
+all_domains = sorted(set(
+    d.strip()
+    for s in SOCIETIES
+    for d in s["domain"].split(",")
+))
+filter_col, _ = st.columns([1, 3])
+with filter_col:
+    filter_domain = st.selectbox("Filter by domain", ["All"] + all_domains)
 
 st.markdown("---")
 
-# Footer
-st.markdown("""
-<div style="background: #1a1a1a; padding: 1rem; border-radius: 12px; text-align: center; border-left: 3px solid #a855f7;">
-    <small style="color: #a0a0a0;">💡 Tip: Adjust filters to find the perfect recommendations for your goals!</small>
+# ── Sort + filter ──
+sorted_societies = sorted(SOCIETIES, key=lambda x: x["match_pct"], reverse=True)
+if filter_domain != "All":
+    sorted_societies = [
+        s for s in sorted_societies
+        if filter_domain.lower() in s["domain"].lower()
+    ]
+
+if not sorted_societies:
+    st.info("No societies match this filter.")
+else:
+    for society in sorted_societies:
+        with st.expander(
+            f"{society['name']}  —  {society['domain'][:45]}{'...' if len(society['domain']) > 45 else ''}  |  {society['match_pct']}% match"
+        ):
+            # Match % — quarter width
+            prog_col, _ = st.columns([1, 3])
+            with prog_col:
+                st.caption("Match Score")
+                st.progress(society["match_pct"] / 100)
+
+            # Detail box
+            st.markdown(f"""
+<div class="detail-box">
+    <div class="detail-label">About</div>
+    <div class="detail-value">{society['description']}</div>
+    <div class="detail-label">Activities</div>
+    <div class="detail-value">{society['activities']}</div>
+    <div class="detail-label">Skills Preferred</div>
+    <div class="detail-value">{society['skills_required']}</div>
+    <div class="detail-label">Commitment</div>
+    <div class="detail-value">{society['commitment_text']}  &nbsp;·&nbsp;  Recruitment: {society['recruitment_month']}</div>
 </div>
 """, unsafe_allow_html=True)
+
+            # Contact links
+            st.markdown("<p style='color:#C99DA3; font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:0.4rem;'>Contact</p>", unsafe_allow_html=True)
+
+            if society.get("instagram"):
+                st.markdown(
+                    f'<a href="{society["instagram"]}" target="_blank" style="color:#C6DDF0; background:#3d2e38; border:1px solid #996888; border-radius:6px; padding:0.35rem 0.9rem; font-size:0.82rem; text-decoration:none; display:inline-block;">Instagram</a>',
+                    unsafe_allow_html=True
+                )
+            if society.get("website"):
+                st.markdown(
+                    f'<a href="{society["website"]}" target="_blank" style="color:#C6DDF0; background:#3d2e38; border:1px solid #996888; border-radius:6px; padding:0.35rem 0.9rem; font-size:0.82rem; text-decoration:none; display:inline-block; margin-left:0.5rem;">Website</a>',
+                    unsafe_allow_html=True
+                )
+            if not society.get("instagram") and not society.get("website"):
+                st.markdown(
+                    '<span style="color:#C99DA3; font-size:0.82rem;">No contact links available</span>',
+                    unsafe_allow_html=True
+                )
+
+            st.markdown("<div style='height:0.8rem'></div>", unsafe_allow_html=True)
+
+            # Buttons
+            btn1, btn2 = st.columns(2)
+            with btn1:
+                if st.button(
+                    "Skill Gap Analysis",
+                    key=f"gap_{society['name']}",
+                    use_container_width=True
+                ):
+                    st.session_state["selected_society"] = society
+                    st.switch_page("pages/SkillGap.py")
+
+            with btn2:
+                if st.button(
+                    "Save as Interested",
+                    key=f"save_{society['name']}",
+                    use_container_width=True
+                ):
+                    if "saved_societies" not in st.session_state:
+                        response = supabase.table("interested_societies") \
+                            .select("*") \
+                            .eq("user_id", st.session_state["user_id"]) \
+                            .execute()
+                        st.session_state["saved_societies"] = response.data
+                    if society["name"] not in [
+                        s.get("society_name", s.get("society_name")) for s in st.session_state["saved_societies"]
+                    ]:
+                        st.session_state["saved_societies"].append(society)
+                        try:
+                            supabase.table("interested_societies").upsert({
+                                "user_id": st.session_state["user_id"],
+                                "society_name": society["name"],
+                                "match_pct": society["match_pct"],
+                                "domain": society["domain"]
+                            }, on_conflict="user_id,society_name", ignore_duplicates=True).execute()
+                        except Exception as e:
+                            st.error(f"Insert failed: {e}")
+                        st.success(f"{society['name']} saved to favourites!")
+                    else:
+                        st.info("Already in your favourites!")
