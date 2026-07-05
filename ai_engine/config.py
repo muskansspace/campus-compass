@@ -14,8 +14,6 @@ load_dotenv(BASE_DIR / ".env")
 # Dataset
 # -------------------------------------------------
 
-DATA_FILE = BASE_DIR / "data" / "igdtuw_societies_final.xlsx"
-
 # -------------------------------------------------
 # Recommendation Engine Weights
 # -------------------------------------------------
