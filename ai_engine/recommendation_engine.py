@@ -1,7 +1,8 @@
 import pandas as pd
 
+from supabase_client import supabase
+
 from ai_engine.config import (
-    DATA_FILE,
     DOMAIN_WEIGHT,
     SKILL_WEIGHT,
     TIME_WEIGHT,
@@ -23,14 +24,22 @@ class RecommendationEngine:
         self.societies = self.load_societies()
 
     # -------------------------------------------------
-    # Load Dataset
+    # Load Society Data
     # -------------------------------------------------
 
     def load_societies(self):
         """
-        Loads the society dataset.
+        Loads society data from the Supabase societies table.
         """
-        return pd.read_excel(DATA_FILE)
+
+        response = (
+            supabase
+            .table("societies")
+            .select("*")
+            .execute()
+        )
+
+        return pd.DataFrame(response.data)
 
     # -------------------------------------------------
     # Student Keywords
@@ -40,6 +49,7 @@ class RecommendationEngine:
         """
         Returns student skills in lowercase.
         """
+
         return {
             skill.lower().strip()
             for skill in self.student.skills
@@ -49,6 +59,7 @@ class RecommendationEngine:
         """
         Returns student interests in lowercase.
         """
+
         return {
             interest.lower().strip()
             for interest in self.student.interests
@@ -171,7 +182,7 @@ class RecommendationEngine:
 
         try:
             commitment = float(commitment)
-        except ValueError:
+        except (TypeError, ValueError):
             return 100
 
         difference = abs(
@@ -231,30 +242,16 @@ class RecommendationEngine:
         """
 
         final_score = (
-
             skill_score * (SKILL_WEIGHT / 100)
-
-            +
-
-            domain_score * (DOMAIN_WEIGHT / 100)
-
-            +
-
-            activity_score * 0.20
-
-            +
-
-            time_score * (TIME_WEIGHT / 100)
-
-            +
-
-            bonus_score
-
+            + domain_score * (DOMAIN_WEIGHT / 100)
+            + activity_score * 0.20
+            + time_score * (TIME_WEIGHT / 100)
+            + bonus_score
         )
 
         return round(final_score, 2)
 
-        # -------------------------------------------------
+    # -------------------------------------------------
     # Recommendation Level
     # -------------------------------------------------
 
@@ -266,14 +263,13 @@ class RecommendationEngine:
         if score >= 80:
             return "Excellent Match 🌟"
 
-        elif score >= 60:
+        if score >= 60:
             return "Strong Match ✅"
 
-        elif score >= 40:
+        if score >= 40:
             return "Good Match 👍"
 
-        else:
-            return "Explore if Interested 📘"
+        return "Explore if Interested 📘"
 
     # -------------------------------------------------
     # Recommendation Engine
@@ -332,39 +328,20 @@ class RecommendationEngine:
                 reason.append("Suitable commitment")
 
             recommendations.append({
-
-                "society_name":
-                    society["society_name"],
-
-                "domain":
-                    society["domain"],
-
-                "description":
-                    society["description"],
-
-                "activities":
-                    society["activities"],
-
-                "score":
-                    final_score,
-
-                "recommendation_level":
-                    level,
-
-                "matched_skills":
-                    skill_result["matched"],
-
-                "missing_skills":
-                    skill_result["missing"],
-
-                "matched_interests":
-                    domain_result["matched"],
-
-                "reason":
+                "society_name": society["society_name"],
+                "domain": society["domain"],
+                "description": society["description"],
+                "activities": society["activities"],
+                "score": final_score,
+                "recommendation_level": level,
+                "matched_skills": skill_result["matched"],
+                "missing_skills": skill_result["missing"],
+                "matched_interests": domain_result["matched"],
+                "reason": (
                     ", ".join(reason)
                     if reason
                     else "General Recommendation"
-
+                )
             })
 
         recommendations.sort(
@@ -388,4 +365,4 @@ class RecommendationEngine:
         if not recommendations:
             return None
 
-        return recommendations[0]  
+        return recommendations[0]
