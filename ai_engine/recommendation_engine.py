@@ -75,7 +75,6 @@ class RecommendationEngine:
         """
 
         student_skills = self.get_student_skills()
-
         society_keywords = extract_keywords(society_skills)
 
         if not society_keywords:
@@ -85,10 +84,7 @@ class RecommendationEngine:
                 "missing": []
             }
 
-        matched = student_skills.intersection(
-            society_keywords
-        )
-
+        matched = student_skills.intersection(society_keywords)
         missing = society_keywords - student_skills
 
         score = (
@@ -112,7 +108,6 @@ class RecommendationEngine:
         """
 
         student_interests = self.get_student_interests()
-
         domain_keywords = extract_keywords(domain)
 
         if not domain_keywords:
@@ -121,9 +116,7 @@ class RecommendationEngine:
                 "matched": []
             }
 
-        matched = student_interests.intersection(
-            domain_keywords
-        )
+        matched = student_interests.intersection(domain_keywords)
 
         score = (
             len(matched)
@@ -145,7 +138,6 @@ class RecommendationEngine:
         """
 
         student_interests = self.get_student_interests()
-
         activity_keywords = extract_keywords(activities)
 
         if not activity_keywords:
@@ -154,9 +146,7 @@ class RecommendationEngine:
                 "matched": []
             }
 
-        matched = student_interests.intersection(
-            activity_keywords
-        )
+        matched = student_interests.intersection(activity_keywords)
 
         score = (
             len(matched)
@@ -328,6 +318,7 @@ class RecommendationEngine:
                 reason.append("Suitable commitment")
 
             recommendations.append({
+                "society_id": society["id"],
                 "society_name": society["society_name"],
                 "domain": society["domain"],
                 "description": society["description"],
@@ -366,3 +357,19 @@ class RecommendationEngine:
             return None
 
         return recommendations[0]
+
+    # -------------------------------------------------
+    # Top Recommendations
+    # -------------------------------------------------
+
+    def get_top_recommendations(self, limit=5):
+        """
+        Returns the highest-ranked Top N society recommendations.
+        """
+
+        if limit <= 0:
+            return []
+
+        recommendations = self.recommend()
+
+        return recommendations[:limit]
