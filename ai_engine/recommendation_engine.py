@@ -1,3 +1,4 @@
+from openai import skills
 import pandas as pd
 
 from supabase_client import supabase
@@ -7,10 +8,36 @@ from ai_engine.config import (
     SKILL_WEIGHT,
     TIME_WEIGHT,
     BONUS_WEIGHT,
+    ACTIVITY_WEIGHT,
 )
 
 from ai_engine.models import StudentProfile
-from ai_engine.utils import extract_keywords
+from ai_engine.utils import extract_keywords, expand_keywords
+
+# -------------------------------------------------
+# Skill Importance Weights
+# -------------------------------------------------
+# Used in calculate_skill_score() to weigh how important
+# each skill is when computing the match score.
+# Any skill not listed here falls back to a default
+# weight of 5 (see SKILL_IMPORTANCE.get(skill, 5)).
+SKILL_IMPORTANCE = {
+    "python": 10,
+    "machine learning": 10,
+    "ai": 9,
+    "artificial intelligence": 9,
+    "programming": 8,
+    "coding": 8,
+    "git": 6,
+    "github": 6,
+    "version control": 6,
+    "aws": 7,
+    "cloud": 7,
+    "cloud computing": 7,
+    "technology": 5,
+    "tech": 5,
+    "research": 6,
+}
 
 
 class RecommendationEngine:
@@ -42,28 +69,92 @@ class RecommendationEngine:
         return pd.DataFrame(response.data)
 
     # -------------------------------------------------
-    # Student Keywords
+    # Student Skills
     # -------------------------------------------------
 
     def get_student_skills(self):
         """
-        Returns student skills in lowercase.
+        Returns student skills with AI-friendly expansion.
         """
 
-        return {
+        skills = {
             skill.lower().strip()
             for skill in self.student.skills
         }
 
+        expanded = set(skills)
+
+        if "python" in skills:
+            expanded.update([
+                "programming",
+                "coding",
+                "technology",
+                "tech"
+            ])
+
+        if "git" in skills:
+            expanded.update([
+                "github",
+                "version control",
+                "tech"
+            ])
+
+        if "aws" in skills:
+            expanded.update([
+        "cloud",
+        "cloud computing",
+        "technology",
+        "tech",
+        "programming",
+        "coding"
+    ])
+
+        if "machine learning" in skills:
+            expanded.update([
+                "ai",
+                "artificial intelligence",
+                "research"
+            ])
+
+        return expanded
+
+    # -------------------------------------------------
+    # Student Interests
+    # -------------------------------------------------
+
     def get_student_interests(self):
         """
-        Returns student interests in lowercase.
+        Returns student interests with semantic expansion.
         """
 
-        return {
+        interests = {
             interest.lower().strip()
             for interest in self.student.interests
         }
+
+        expanded = set(interests)
+
+        if "ai" in interests:
+            expanded.update([
+                "machine learning",
+                "research",
+                "technology"
+            ])
+
+        if "machine learning" in interests:
+            expanded.update([
+                "ai",
+                "technology"
+            ])
+
+        if "web development" in interests:
+            expanded.update([
+                "coding",
+                "programming",
+                "technology"
+            ])
+
+        return expanded
 
     # -------------------------------------------------
     # Skill Matching
@@ -71,10 +162,11 @@ class RecommendationEngine:
 
     def calculate_skill_score(self, society_skills):
         """
-        Calculates skill match score.
+        Calculates weighted skill match score.
         """
 
         student_skills = self.get_student_skills()
+
         society_keywords = extract_keywords(society_skills)
 
         if not society_keywords:
@@ -84,12 +176,39 @@ class RecommendationEngine:
                 "missing": []
             }
 
-        matched = student_skills.intersection(society_keywords)
+        print("\n---------------------------")
+        print("Student Skills :", student_skills)
+        print("Society Skills :", society_keywords)
+
+        matched = student_skills.intersection(
+            society_keywords
+        )
+
         missing = society_keywords - student_skills
+        missing = {
+    skill
+    for skill in missing
+    if skill not in {
+        "mindset",
+        "problem",
+        "solving",
+        "domain"
+    }
+}
+        total_weight = 0
+        matched_weight = 0
+
+        for skill in society_keywords:
+
+            weight = SKILL_IMPORTANCE.get(skill, 5)
+
+            total_weight += weight
+
+            if skill in matched:
+                matched_weight += weight
 
         score = (
-            len(matched)
-            / len(society_keywords)
+            matched_weight / total_weight
         ) * 100
 
         return {
@@ -108,6 +227,7 @@ class RecommendationEngine:
         """
 
         student_interests = self.get_student_interests()
+
         domain_keywords = extract_keywords(domain)
 
         if not domain_keywords:
@@ -116,7 +236,9 @@ class RecommendationEngine:
                 "matched": []
             }
 
-        matched = student_interests.intersection(domain_keywords)
+        matched = student_interests.intersection(
+            domain_keywords
+        )
 
         score = (
             len(matched)
@@ -138,6 +260,7 @@ class RecommendationEngine:
         """
 
         student_interests = self.get_student_interests()
+
         activity_keywords = extract_keywords(activities)
 
         if not activity_keywords:
@@ -146,7 +269,9 @@ class RecommendationEngine:
                 "matched": []
             }
 
-        matched = student_interests.intersection(activity_keywords)
+        matched = student_interests.intersection(
+            activity_keywords
+        )
 
         score = (
             len(matched)
@@ -161,32 +286,35 @@ class RecommendationEngine:
     # -------------------------------------------------
     # Time Commitment
     # -------------------------------------------------
-
     def calculate_time_score(self, commitment):
         """
         Calculates time compatibility score.
         """
 
         if pd.isna(commitment):
-            return 100
+            return 50
 
         try:
             commitment = float(commitment)
         except (TypeError, ValueError):
-            return 100
+            return 50
 
-        difference = abs(
+        diff = abs(
             self.student.hours_per_week - commitment
         )
 
-        if difference <= 1:
+        if diff <= 1:
             return 100
-
-        if difference <= 3:
+        elif diff <= 2:
+            return 90
+        elif diff <= 3:
+            return 80
+        elif diff <= 4:
             return 70
-
-        return 40
-
+        elif diff <= 5:
+            return 60
+        else:
+            return 40
     # -------------------------------------------------
     # Bonus Score
     # -------------------------------------------------
@@ -227,17 +355,13 @@ class RecommendationEngine:
         time_score,
         bonus_score
     ):
-        """
-        Calculates the final recommendation score.
-        """
 
         final_score = (
-            skill_score * (SKILL_WEIGHT / 100)
-            + domain_score * (DOMAIN_WEIGHT / 100)
-            + activity_score * 0.20
-            + time_score * (TIME_WEIGHT / 100)
-            + bonus_score
-        )
+        skill_score * 45 +
+        domain_score * 25 +
+        activity_score * 20 +
+        time_score * 10
+) / 100
 
         return round(final_score, 2)
 
@@ -245,21 +369,19 @@ class RecommendationEngine:
     # Recommendation Level
     # -------------------------------------------------
 
-    def get_recommendation_level(self, score):
-        """
-        Returns a confidence level for the recommendation.
-        """
+    def get_recommendation_level(self,score):
 
-        if score >= 80:
-            return "Excellent Match 🌟"
+        if score >= 25:
+            return "Excellent Match ⭐"
 
-        if score >= 60:
+        elif score >= 18:
             return "Strong Match ✅"
 
-        if score >= 40:
+        elif score >= 12:
             return "Good Match 👍"
 
-        return "Explore if Interested 📘"
+        else:
+            return "Explore if Interested 📘"
 
     # -------------------------------------------------
     # Recommendation Engine
@@ -273,7 +395,7 @@ class RecommendationEngine:
         recommendations = []
 
         for _, society in self.societies.iterrows():
-
+           
             skill_result = self.calculate_skill_score(
                 society["skills_preferred_required"]
             )
@@ -309,42 +431,70 @@ class RecommendationEngine:
             reason = []
 
             if skill_result["matched"]:
-                reason.append("Skill match")
+                reason.append(
+                    f"Matched skills: {', '.join(skill_result['matched'])}"
+                )
 
             if domain_result["matched"]:
-                reason.append("Interest alignment")
+                reason.append(
+                    f"Matched interests: {', '.join(domain_result['matched'])}"
+                )
+
+            if activity_result["matched"]:
+                activities = ", ".join(
+                    activity_result["matched"][:2]
+                )
+                reason.append(
+                    f"The society's activities match your interests like {activities}."
+                )
 
             if time_score >= 70:
-                reason.append("Suitable commitment")
+                reason.append(
+                    "Time commitment fits your schedule."
+                )
 
+            if bonus_score:
+                reason.append(
+                    "Your academic background is relevant for this society."
+                )
+            print(
+    f"{society['society_name']}"
+    f" | Skill={skill_result['score']}"
+    f" | Domain={domain_result['score']}"
+    f" | Activity={activity_result['score']}"
+    f" | Time={time_score}"
+    f" | Bonus={bonus_score}"
+    f" | Final={final_score}"
+)
             recommendations.append({
-    "society_id": society["id"],
-    "society_name": society["society_name"],
+                "society_id": society["id"],
+                "society_name": society["society_name"],
 
-    "domain": society["domain"],
-    "description": society["description"],
-    "activities": society["activities"],
+                "domain": society["domain"],
+                "description": society["description"],
+                "activities": society["activities"],
 
-    "instagram": society.get("contacts_instagram"),
-    "website": society.get("website"),
+                "instagram": society.get("contacts_instagram"),
+                "website": society.get("website"),
 
-    "commitment_per_week": society.get("commitment_per_week_num"),
-    "commitment_text": society.get("commitment_text"),
-    "recruitment_month": society.get("recruitment_month"),
+                "commitment_per_week": society.get("commitment_per_week_num"),
+                "commitment_text": society.get("commitment_text"),
+                "recruitment_month": society.get("recruitment_month"),
 
-    "score": final_score,
-    "recommendation_level": level,
+                "score": final_score,
+                "recommendation_level": level,
 
-    "matched_skills": skill_result["matched"],
-    "missing_skills": skill_result["missing"],
-    "matched_interests": domain_result["matched"],
+                "matched_skills": skill_result["matched"],
+                "missing_skills": skill_result["missing"],
+                "matched_interests": domain_result["matched"],
 
-    "reason": (
-        ", ".join(reason)
-        if reason
-        else "General Recommendation"
-    )
-})
+                "reason": (
+                    "\n".join(reason)
+                    if reason
+                    else "A good opportunity to explore new skills and experiences."
+                )
+                
+            })
 
         recommendations.sort(
             key=lambda x: x["score"],

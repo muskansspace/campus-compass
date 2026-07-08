@@ -1,90 +1,172 @@
 import re
 
 """
-Utility functions for extracting predefined
-keywords from text used in the recommendation engine.
+Utility functions for keyword extraction and semantic matching.
 """
 
-# All possible skills we want to detect
-KNOWN_KEYWORDS = [
+KNOWN_KEYWORDS = {
 
-    # Programming Languages
-    "python",
-    "java",
-    "c",
-    "c++",
-    "javascript",
-    "html",
-    "css",
-    "sql",
+    # Programming
+    "python", "java", "c programming", "c++", "javascript",
+    "html", "css", "sql",
 
-    # Frameworks / Tools
-    "react",
-    "node",
-    "git",
-    "github",
-    "aws",
-    "canva",
+    # Tools
+    "react", "node", "git", "github", "aws",
+    "cloud", "docker", "linux",
 
-    # AI / ML
-    "artificial intelligence",
+    # AI
     "ai",
+    "artificial intelligence",
     "machine learning",
     "deep learning",
     "computer vision",
     "nlp",
     "data science",
 
-    # Domains
-    "blockchain",
-    "robotics",
-    "cyber security",
-    "cloud",
-
     # Development
     "web development",
     "app development",
+    "frontend",
+    "backend",
 
-    # Core Skills
+    # Domains
+    "blockchain",
+    "cybersecurity",
+    "cyber security",
+    "robotics",
+    "web3",
+
+    # Core
+    "dsa",
     "problem solving",
     "competitive programming",
-    "dsa",
-    "communication",
+    "research",
     "leadership",
     "teamwork",
-    "event management",
+    "communication",
     "public speaking",
-    "research",
+    "event management",
 
     # Creative
-    "photography",
     "design",
     "ui",
     "ux",
-    "ui/ux"
-]
+    "ui/ux",
+    "photography",
+
+    # Dataset specific
+    "tech",
+    "technology",
+    "technical",
+    "coding",
+    "programming",
+    "innovation",
+    "hardware",
+    "networking",
+    "open source",
+    "community",
+    "community building",
+    "current affairs",
+    "debate",
+    "mun",
+    "literature",
+    "oration",
+    "finance",
+    "entrepreneurship",
+    "social impact",
+    "music",
+    "dance"
+}
+
+STOP_WORDS = {
+    "the","a","an","and","or","for","of","to","in",
+    "on","with","at","by","from","into","is","are",
+    "interest","interested","basic","good","strong",
+    "passion","enthusiasm","preferred","knowledge",
+    "skills","skill","learn","learning","contribute",
+    "consistently","required"
+}
+
+SYNONYMS = {
+
+    "python": {
+        "python",
+        "programming",
+        "coding"
+    },
+
+    "git": {
+        "git",
+        "github",
+        "version control"
+    },
+
+    "aws": {
+        "aws",
+        "cloud",
+        "cloud computing",
+        "amazon web services"
+    },
+
+    "machine learning": {
+        "machine learning",
+        "ai",
+        "artificial intelligence",
+        "deep learning"
+    },
+
+    "web development": {
+        "frontend",
+        "backend",
+        "html",
+        "css",
+        "javascript",
+        "react"
+    },
+
+    "tech": {
+        "technology",
+        "technical",
+        "innovation",
+        "engineering"
+    }
+}
+
+
+def expand_keywords(words):
+
+    expanded = set(words)
+
+    for word in list(words):
+
+        for values in SYNONYMS.values():
+
+            if word in values:
+                expanded.update(values)
+
+    return expanded
 
 
 def extract_keywords(text):
-    """
-    Extracts predefined keywords from text
-    using case-insensitive whole-word matching.
-    """
 
     if text is None:
         return set()
 
     text = str(text).lower()
 
-    text = re.sub(r"[^\w\s+/#-]", " ", text)
+    text = re.sub(r"[^a-z0-9+#/ ]", " ", text)
 
-    keywords = set()
+    words = {
+        w.strip()
+        for w in text.split()
+        if len(w) > 2 and w not in STOP_WORDS
+    }
+
+    keywords = set(words)
 
     for keyword in KNOWN_KEYWORDS:
 
-        pattern = r"\b" + re.escape(keyword) + r"\b"
-
-        if re.search(pattern, text):
+        if keyword in text:
             keywords.add(keyword)
 
-    return keywords
+    return expand_keywords(keywords)

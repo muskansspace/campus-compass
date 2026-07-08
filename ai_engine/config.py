@@ -18,10 +18,11 @@ load_dotenv(BASE_DIR / ".env")
 # Recommendation Engine Weights
 # -------------------------------------------------
 
-SKILL_WEIGHT = 50
-DOMAIN_WEIGHT = 20
-TIME_WEIGHT = 20
-BONUS_WEIGHT = 10
+SKILL_WEIGHT = 45
+DOMAIN_WEIGHT = 30
+TIME_WEIGHT = 5
+BONUS_WEIGHT = 5
+ACTIVITY_WEIGHT = 20
 
 # -------------------------------------------------
 # Bedrock / OpenAI Compatible API
