@@ -318,22 +318,33 @@ class RecommendationEngine:
                 reason.append("Suitable commitment")
 
             recommendations.append({
-                "society_id": society["id"],
-                "society_name": society["society_name"],
-                "domain": society["domain"],
-                "description": society["description"],
-                "activities": society["activities"],
-                "score": final_score,
-                "recommendation_level": level,
-                "matched_skills": skill_result["matched"],
-                "missing_skills": skill_result["missing"],
-                "matched_interests": domain_result["matched"],
-                "reason": (
-                    ", ".join(reason)
-                    if reason
-                    else "General Recommendation"
-                )
-            })
+    "society_id": society["id"],
+    "society_name": society["society_name"],
+
+    "domain": society["domain"],
+    "description": society["description"],
+    "activities": society["activities"],
+
+    "instagram": society.get("contacts_instagram"),
+    "website": society.get("website"),
+
+    "commitment_per_week": society.get("commitment_per_week_num"),
+    "commitment_text": society.get("commitment_text"),
+    "recruitment_month": society.get("recruitment_month"),
+
+    "score": final_score,
+    "recommendation_level": level,
+
+    "matched_skills": skill_result["matched"],
+    "missing_skills": skill_result["missing"],
+    "matched_interests": domain_result["matched"],
+
+    "reason": (
+        ", ".join(reason)
+        if reason
+        else "General Recommendation"
+    )
+})
 
         recommendations.sort(
             key=lambda x: x["score"],
