@@ -131,6 +131,10 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     if st.button("Logout"):
+        try:
+            supabase.auth.sign_out()
+        except:
+            pass
         st.session_state.clear()
         st.switch_page("App.py")
 

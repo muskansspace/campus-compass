@@ -17,7 +17,106 @@ st.set_page_config(
 )
 
 # ── Custom Styling ──
-st.markdown("""<style>/* CSS omitted for brevity — keep your existing styles */</style>""", unsafe_allow_html=True)
+st.markdown("""
+<style>
+    .stApp { background: #2A252A; }
+    .block-container { padding-top: 2rem !important; }
+    [data-testid="stSidebar"] {
+        background: #5E4955 !important;
+        border-right: 1px solid #996888 !important;
+    }
+    [data-testid="stSidebar"] * { color: #C6DDF0 !important; }
+    [data-testid="stSidebar"] .stButton > button {
+        background: transparent !important;
+        color: #C99DA3 !important;
+        border: 1px solid #996888 !important;
+        border-radius: 8px !important;
+        width: 100% !important;
+        font-weight: 500 !important;
+    }
+    [data-testid="stSidebar"] .stButton > button:hover {
+        background: #996888 !important;
+        color: #ffffff !important;
+    }
+    h1, h2, h3 { color: #C6DDF0 !important; }
+    .stTextInput label, .stNumberInput label,
+    .stMultiSelect label, .stSelectbox label,
+    .stRadio label {
+        color: #C99DA3 !important;
+        font-size: 0.85rem !important;
+        font-weight: 500 !important;
+    }
+    [data-baseweb="select"] > div {
+        background: #3d2e38 !important;
+        border: 1px solid #996888 !important;
+        border-radius: 8px !important;
+        color: #C6DDF0 !important;
+    }
+    [data-baseweb="menu"] { background: #3d2e38 !important; }
+    [data-baseweb="option"] {
+        background: #3d2e38 !important;
+        color: #C6DDF0 !important;
+    }
+    [data-baseweb="option"]:hover { background: #5E4955 !important; }
+    [data-baseweb="select"] svg {
+        fill: #C99DA3 !important;
+        opacity: 1 !important;
+        display: block !important;
+    }
+    .stButton > button {
+        background: #996888 !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        padding: 0.6rem 1.5rem !important;
+        transition: all 0.2s !important;
+    }
+    .stButton > button:hover {
+        background: #C99DA3 !important;
+        color: #2A252A !important;
+    }
+    hr { border-color: #996888 !important; }
+
+    /* Expander (society cards) */
+    [data-testid="stExpander"] {
+        background: #5E4955 !important;
+        border: 1px solid #996888 !important;
+        border-radius: 12px !important;
+        margin-bottom: 1rem !important;
+    }
+    [data-testid="stExpander"] summary {
+        color: #C6DDF0 !important;
+        font-weight: 600 !important;
+    }
+    [data-testid="stExpander"] p { color: #C6DDF0 !important; }
+
+    /* Detail box inside each society card */
+    .detail-box {
+        background: #3d2e38;
+        border: 1px solid #996888;
+        border-radius: 10px;
+        padding: 1rem 1.2rem;
+        margin-top: 0.5rem;
+    }
+    .detail-label {
+        color: #C99DA3;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-top: 0.8rem;
+        margin-bottom: 0.2rem;
+    }
+    .detail-label:first-child { margin-top: 0; }
+    .detail-value {
+        color: #C6DDF0;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin-bottom: 0.3rem;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # ── Auth check ──
 if not st.session_state.get("logged_in"):
@@ -46,6 +145,10 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     if st.button("Logout"):
+        try:
+            supabase.auth.sign_out()
+        except:
+            pass
         st.session_state.clear()
         st.switch_page("App.py")
 

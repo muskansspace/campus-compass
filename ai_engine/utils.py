@@ -162,7 +162,11 @@ def extract_keywords(text):
         if len(w) > 2 and w not in STOP_WORDS
     }
 
-    keywords = set(words)
+    # Only keep words that are recognized, meaningful keywords.
+    # Previously EVERY non-stopword token (e.g. "join", "opportunity",
+    # "students", "team") was treated as a keyword, which diluted the
+    # match score with noise unrelated to actual skills/domains.
+    keywords = {w for w in words if w in KNOWN_KEYWORDS}
 
     for keyword in KNOWN_KEYWORDS:
 
