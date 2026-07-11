@@ -1,53 +1,44 @@
+import re
+
 import pandas as pd
 
 from supabase_client import supabase
 
-from ai_engine.config import (
-    DOMAIN_WEIGHT,
-    SKILL_WEIGHT,
-    TIME_WEIGHT,
-    BONUS_WEIGHT,
-    ACTIVITY_WEIGHT,
-)
-
 from ai_engine.models import StudentProfile
-from ai_engine.utils import extract_keywords, expand_keywords
-
-# -------------------------------------------------
-# Skill Importance Weights
-# -------------------------------------------------
-# Used in calculate_skill_score() to weigh how important
-# each skill is when computing the match score.
-# Any skill not listed here falls back to a default
-# weight of 5 (see SKILL_IMPORTANCE.get(skill, 5)).
-SKILL_IMPORTANCE = {
-    "python": 10,
-    "machine learning": 10,
-    "ai": 9,
-    "artificial intelligence": 9,
-    "programming": 8,
-    "coding": 8,
-    "git": 6,
-    "github": 6,
-    "version control": 6,
-    "aws": 7,
-    "cloud": 7,
-    "cloud computing": 7,
-    "technology": 5,
-    "tech": 5,
-    "research": 6,
-}
+from ai_engine.utils import extract_keywords, canonicalize
 
 
 class RecommendationEngine:
     """
     Generates personalized society recommendations
     based on a student's profile.
+
+    Matching design (per Muskan's request):
+    - ALL known information about a society (domain, skills required,
+      description, activities, other_aspects) is combined into a single
+      text blob and reduced to a set of recognized keywords.
+    - The student's skills + interests are combined into a single set too
+      (previously these were two separate silos: skills only matched
+      against `skills_preferred_required`, interests only matched against
+      `domain`/`activities` — so a trait like "public speaking" entered
+      as a *skill* would never match a society whose *domain* was public
+      speaking. That silo is gone now.)
+    - Each matched keyword is worth a weight based on how rare it is
+      across all societies (see _build_keyword_weights) — a specific,
+      uncommon match (e.g. "public speaking") counts for much more than
+      a generic one that half the societies share (e.g. "technology").
+      This is what lets 2-3 genuine, specific matches land you in
+      Excellent territory without everyone clustering at the same score
+      just because they all share common tech buzzwords.
+    - Time commitment is intentionally NOT part of this score — that's
+      handled separately by the burnout calculator / best_combinations
+      in analytics.py.
     """
 
     def __init__(self, student: StudentProfile):
         self.student = student
         self.societies = self.load_societies()
+        self.keyword_weights = self._build_keyword_weights()
 
     # -------------------------------------------------
     # Load Society Data
@@ -68,105 +59,155 @@ class RecommendationEngine:
         return pd.DataFrame(response.data)
 
     # -------------------------------------------------
-    # Student Skills
+    # Keyword Rarity Weights (IDF-style)
+    # -------------------------------------------------
+
+    def _build_keyword_weights(self):
+        """
+        Weighs each keyword by how rare it is across all societies.
+        A keyword that appears in almost every society (e.g.
+        "technology") is not very distinguishing, so it's worth little.
+        A keyword that appears in only 1-2 societies (e.g. "public
+        speaking") is highly distinguishing, so it's worth a lot.
+        """
+
+        total_societies = len(self.societies)
+
+        if total_societies == 0:
+            return {}
+
+        doc_freq = {}
+
+        for _, society in self.societies.iterrows():
+            society_keywords = extract_keywords(
+                self.build_society_text(society)
+            )
+            for kw in society_keywords:
+                doc_freq[kw] = doc_freq.get(kw, 0) + 1
+
+        weights = {}
+
+        for kw, freq in doc_freq.items():
+            share = freq / total_societies
+
+            if share <= 0.15:
+                weights[kw] = 40   # rare, highly specific
+            elif share <= 0.30:
+                weights[kw] = 25   # moderately specific
+            elif share <= 0.50:
+                weights[kw] = 15   # fairly common
+            else:
+                weights[kw] = 8    # generic, shared by most societies
+
+        return weights
+
+    def get_keyword_weight(self, keyword):
+        return self.keyword_weights.get(keyword, 20)
+
+    # -------------------------------------------------
+    # Student Keywords (skills + interests, combined)
     # -------------------------------------------------
 
     def get_student_skills(self):
         """
-        Returns student skills with AI-friendly expansion.
+        Returns student skills, canonicalized + with distinct
+        cross-concept inference (e.g. knowing Python implies
+        "programming" — a related but genuinely different concept,
+        not a synonym of "python" itself).
         """
 
         skills = {
-            skill.lower().strip()
+            canonicalize(skill.lower().strip())
             for skill in self.student.skills
         }
 
         expanded = set(skills)
 
         if "python" in skills:
-            expanded.update([
-                "programming",
-                "coding",
-                "technology",
-                "tech"
-            ])
+            expanded.update(["programming", "coding"])
 
         if "git" in skills:
-            expanded.update([
-                "github",
-                "version control",
-                "tech"
-            ])
+            expanded.update(["github", "version control"])
 
         if "aws" in skills:
-            expanded.update([
-        "cloud",
-        "cloud computing",
-        "technology",
-        "tech",
-        "programming",
-        "coding"
-    ])
+            expanded.update(["cloud", "programming", "coding"])
 
-        if "machine learning" in skills:
-            expanded.update([
-                "ai",
-                "artificial intelligence",
-                "research"
-            ])
+        if "ai" in skills:
+            expanded.update(["research"])
 
         return expanded
 
-    # -------------------------------------------------
-    # Student Interests
-    # -------------------------------------------------
-
     def get_student_interests(self):
         """
-        Returns student interests with semantic expansion.
+        Returns student interests, canonicalized + with distinct
+        cross-concept inference.
         """
 
         interests = {
-            interest.lower().strip()
+            canonicalize(interest.lower().strip())
             for interest in self.student.interests
         }
 
         expanded = set(interests)
 
         if "ai" in interests:
-            expanded.update([
-                "machine learning",
-                "research",
-                "technology"
-            ])
-
-        if "machine learning" in interests:
-            expanded.update([
-                "ai",
-                "technology"
-            ])
+            expanded.update(["research"])
 
         if "web development" in interests:
-            expanded.update([
-                "coding",
-                "programming",
-                "technology"
-            ])
+            expanded.update(["coding", "programming"])
 
         return expanded
 
-    # -------------------------------------------------
-    # Skill Matching
-    # -------------------------------------------------
-
-    def calculate_skill_score(self, society_skills):
+    def get_student_keywords(self):
         """
-        Calculates weighted skill match score.
+        Union of skills + interests. A trait like "public speaking"
+        counts the same whether the student listed it as a skill or
+        an interest.
         """
 
-        student_skills = self.get_student_skills()
+        return self.get_student_skills() | self.get_student_interests()
 
-        society_keywords = extract_keywords(society_skills)
+    # -------------------------------------------------
+    # Society Text (all known info combined into one blob)
+    # -------------------------------------------------
+
+    def build_society_text(self, society):
+        """
+        Combines every field describing the society into one paragraph
+        so keyword matching isn't restricted to a single narrow field.
+        """
+
+        fields = [
+            "domain",
+            "skills_preferred_required",
+            "description",
+            "activities",
+            "other_aspects",
+        ]
+
+        parts = []
+
+        for field in fields:
+            value = society.get(field)
+            if value and str(value).lower() != "nan":
+                parts.append(str(value))
+
+        return " . ".join(parts)
+
+    # -------------------------------------------------
+    # Match Score
+    # -------------------------------------------------
+
+    def calculate_match_score(self, society):
+        """
+        Flat-weight keyword overlap between the student's combined
+        skills+interests and the society's combined text.
+        """
+
+        student_keywords = self.get_student_keywords()
+
+        society_text = self.build_society_text(society)
+        society_keywords = extract_keywords(society_text)
 
         if not society_keywords:
             return {
@@ -175,147 +216,22 @@ class RecommendationEngine:
                 "missing": []
             }
 
-        print("\n---------------------------")
-        print("Student Skills :", student_skills)
-        print("Society Skills :", society_keywords)
+        matched = student_keywords.intersection(society_keywords)
+        missing = society_keywords - student_keywords
 
-        matched = student_skills.intersection(
-            society_keywords
+        score = sum(
+            self.get_keyword_weight(kw) for kw in matched
         )
-
-        missing = society_keywords - student_skills
-        missing = {
-    skill
-    for skill in missing
-    if skill not in {
-        "mindset",
-        "problem",
-        "solving",
-        "domain"
-    }
-}
-        total_weight = 0
-        matched_weight = 0
-
-        for skill in society_keywords:
-
-            weight = SKILL_IMPORTANCE.get(skill, 5)
-
-            total_weight += weight
-
-            if skill in matched:
-                matched_weight += weight
-
-        score = (
-            matched_weight / total_weight
-        ) * 100
+        score = min(score, 100)
 
         return {
-            "score": round(score, 2),
-            "matched": sorted(list(matched)),
-            "missing": sorted(list(missing))
+            "score": score,
+            "matched": sorted(matched),
+            "missing": sorted(missing)
         }
 
     # -------------------------------------------------
-    # Domain Matching
-    # -------------------------------------------------
-
-    def calculate_domain_score(self, domain):
-        """
-        Calculates domain match score.
-        """
-
-        student_interests = self.get_student_interests()
-
-        domain_keywords = extract_keywords(domain)
-
-        if not domain_keywords:
-            return {
-                "score": 0,
-                "matched": []
-            }
-
-        matched = student_interests.intersection(
-            domain_keywords
-        )
-
-        score = (
-            len(matched)
-            / len(domain_keywords)
-        ) * 100
-
-        return {
-            "score": round(score, 2),
-            "matched": sorted(list(matched))
-        }
-
-    # -------------------------------------------------
-    # Activity Matching
-    # -------------------------------------------------
-
-    def calculate_activity_score(self, activities):
-        """
-        Calculates activity match score.
-        """
-
-        student_interests = self.get_student_interests()
-
-        activity_keywords = extract_keywords(activities)
-
-        if not activity_keywords:
-            return {
-                "score": 0,
-                "matched": []
-            }
-
-        matched = student_interests.intersection(
-            activity_keywords
-        )
-
-        score = (
-            len(matched)
-            / len(activity_keywords)
-        ) * 100
-
-        return {
-            "score": round(score, 2),
-            "matched": sorted(list(matched))
-        }
-
-    # -------------------------------------------------
-    # Time Commitment
-    # -------------------------------------------------
-    def calculate_time_score(self, commitment):
-        """
-        Calculates time compatibility score.
-        """
-
-        if pd.isna(commitment):
-            return 50
-
-        try:
-            commitment = float(commitment)
-        except (TypeError, ValueError):
-            return 50
-
-        diff = abs(
-            self.student.hours_per_week - commitment
-        )
-
-        if diff <= 1:
-            return 100
-        elif diff <= 2:
-            return 90
-        elif diff <= 3:
-            return 80
-        elif diff <= 4:
-            return 70
-        elif diff <= 5:
-            return 60
-        else:
-            return 40
-    # -------------------------------------------------
-    # Bonus Score
+    # Bonus Score (branch relevance)
     # -------------------------------------------------
 
     def calculate_bonus_score(self, society):
@@ -326,18 +242,35 @@ class RecommendationEngine:
 
         bonus = 0
 
-        description = str(
-            society["description"]
-        ).lower()
+        branch_raw = self.student.branch.strip()
 
-        other_aspects = str(
-            society["other_aspects"]
-        ).lower()
+        if not branch_raw:
+            return bonus
 
-        if self.student.branch.lower() in description:
+        description_raw = str(society.get("description", ""))
+        other_aspects_raw = str(society.get("other_aspects", ""))
+
+        # Short abbreviations (IT, CS, ME, ECE...) collide with common
+        # English words ("it", "me") when lowercased — "...it is a great
+        # society..." would otherwise match branch "IT". For anything
+        # 4 characters or shorter, require an exact-case match, since
+        # branch codes are almost always written uppercase in society
+        # text, unlike ordinary lowercase English words.
+        if len(branch_raw) <= 4:
+            branch = branch_raw.upper()
+            description = description_raw
+            other_aspects = other_aspects_raw
+        else:
+            branch = branch_raw.lower()
+            description = description_raw.lower()
+            other_aspects = other_aspects_raw.lower()
+
+        pattern = r"(?<![a-zA-Z0-9])" + re.escape(branch) + r"(?![a-zA-Z0-9])"
+
+        if re.search(pattern, description):
             bonus += 5
 
-        if self.student.branch.lower() in other_aspects:
+        if re.search(pattern, other_aspects):
             bonus += 5
 
         return bonus
@@ -346,47 +279,23 @@ class RecommendationEngine:
     # Final Score
     # -------------------------------------------------
 
-    def calculate_final_score(
-        self,
-        skill_score,
-        domain_score,
-        activity_score,
-        time_score,
-        bonus_score
-    ):
-        # Weighted sum uses config.py weights (these already sum to 100:
-        # SKILL 45 + DOMAIN 30 + ACTIVITY 20 + TIME 5). Previously this
-        # formula ignored the config weights entirely (hardcoded
-        # 45/25/20/10) and silently dropped bonus_score, so branch-relevance
-        # never actually affected the ranking.
-        weighted_sum = (
-            skill_score * SKILL_WEIGHT +
-            domain_score * DOMAIN_WEIGHT +
-            activity_score * ACTIVITY_WEIGHT +
-            time_score * TIME_WEIGHT
-        ) / 100
-
-        final_score = weighted_sum + bonus_score
-
-        return round(min(final_score, 100), 2)
+    def calculate_final_score(self, match_score, bonus_score):
+        return round(min(match_score + bonus_score, 100), 2)
 
     # -------------------------------------------------
     # Recommendation Level
     # -------------------------------------------------
 
     def get_recommendation_level(self, score):
-        # Recalibrated after the keyword-extraction fix (see utils.py):
-        # scores are no longer diluted by noise words, so genuine matches
-        # now land meaningfully higher than before. Thresholds below were
-        # set by simulating real society data — top matches land ~45-55,
-        # average matches ~20-30.
-        if score >= 45:
+        # With flat +10-per-keyword scoring: 1 strong match = 10,
+        # 3+ genuine matches = 30-40+, 5+ = Excellent territory.
+        if score >= 50:
             return "Excellent Match ⭐"
 
         elif score >= 30:
             return "Strong Match ✅"
 
-        elif score >= 18:
+        elif score >= 10:
             return "Good Match 👍"
 
         else:
@@ -404,77 +313,30 @@ class RecommendationEngine:
         recommendations = []
 
         for _, society in self.societies.iterrows():
-           
-            skill_result = self.calculate_skill_score(
-                society["skills_preferred_required"]
-            )
 
-            domain_result = self.calculate_domain_score(
-                society["domain"]
-            )
+            match_result = self.calculate_match_score(society)
 
-            activity_result = self.calculate_activity_score(
-                society["activities"]
-            )
-
-            time_score = self.calculate_time_score(
-                society["commitment_per_week_num"]
-            )
-
-            bonus_score = self.calculate_bonus_score(
-                society
-            )
+            bonus_score = self.calculate_bonus_score(society)
 
             final_score = self.calculate_final_score(
-                skill_result["score"],
-                domain_result["score"],
-                activity_result["score"],
-                time_score,
+                match_result["score"],
                 bonus_score
             )
 
-            level = self.get_recommendation_level(
-                final_score
-            )
+            level = self.get_recommendation_level(final_score)
 
             reason = []
 
-            if skill_result["matched"]:
+            if match_result["matched"]:
                 reason.append(
-                    f"Matched skills: {', '.join(skill_result['matched'])}"
-                )
-
-            if domain_result["matched"]:
-                reason.append(
-                    f"Matched interests: {', '.join(domain_result['matched'])}"
-                )
-
-            if activity_result["matched"]:
-                activities = ", ".join(
-                    activity_result["matched"][:2]
-                )
-                reason.append(
-                    f"The society's activities match your interests like {activities}."
-                )
-
-            if time_score >= 70:
-                reason.append(
-                    "Time commitment fits your schedule."
+                    f"Matched: {', '.join(match_result['matched'])}"
                 )
 
             if bonus_score:
                 reason.append(
                     "Your academic background is relevant for this society."
                 )
-            print(
-    f"{society['society_name']}"
-    f" | Skill={skill_result['score']}"
-    f" | Domain={domain_result['score']}"
-    f" | Activity={activity_result['score']}"
-    f" | Time={time_score}"
-    f" | Bonus={bonus_score}"
-    f" | Final={final_score}"
-)
+
             recommendations.append({
                 "society_id": society["id"],
                 "society_name": society["society_name"],
@@ -493,16 +355,15 @@ class RecommendationEngine:
                 "score": final_score,
                 "recommendation_level": level,
 
-                "matched_skills": skill_result["matched"],
-                "missing_skills": skill_result["missing"],
-                "matched_interests": domain_result["matched"],
+                "matched_skills": match_result["matched"],
+                "missing_skills": match_result["missing"],
 
                 "reason": (
                     "\n".join(reason)
                     if reason
                     else "A good opportunity to explore new skills and experiences."
                 )
-                
+
             })
 
         recommendations.sort(

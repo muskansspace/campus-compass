@@ -145,10 +145,6 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     if st.button("Logout"):
-        try:
-            supabase.auth.sign_out()
-        except:
-            pass
         st.session_state.clear()
         st.switch_page("App.py")
 
@@ -189,7 +185,7 @@ profile_data = {
     "hours_per_week": profile["hours_per_week"],
 }
 
-recommended_societies = get_society_recommendations(profile_data, limit=10)
+recommended_societies = get_society_recommendations(profile_data, limit=None)
 
 all_domains = sorted(set(
     d.strip()
@@ -215,6 +211,16 @@ if not sorted_societies:
     st.info("No societies match this filter.")
 else:
     for society in sorted_societies:
+
+        def is_empty(value):
+            if value is None:
+                return True
+            text = str(value).strip().lower()
+            return text in ("", "n/a", "na", "none", "nan", "null")
+
+        description_missing = is_empty(society.get("description"))
+        activities_missing = is_empty(society.get("activities"))
+
         with st.expander(
             f"{society['society_name']}  —  {society['domain'][:45]}"
             f"{'...' if len(society['domain']) > 45 else ''}  |  "
@@ -227,13 +233,28 @@ else:
                 st.progress(society["score"] / 100)
                 st.metric("Match Score", f"{round(society['score'])}%")
 
-            # Detail box
-            st.markdown(f"""
+            # Detail box — societies whose info hasn't been added to the
+            # database yet get a friendly placeholder instead of raw "N/A".
+            if description_missing and activities_missing:
+                st.markdown(f"""
+<div class="detail-box">
+    <div class="detail-value">
+        We don't have full details for this society yet — check
+        their Instagram/website below, or check back soon!
+    </div>
+</div>
+""", unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
 <div class="detail-box">
     <div class="detail-label">About</div>
-    <div class="detail-value">{society['description']}</div>
+    <div class="detail-value">
+        {society['description'] if not description_missing else "Details coming soon."}
+    </div>
     <div class="detail-label">Activities</div>
-    <div class="detail-value">{society['activities']}</div>
+    <div class="detail-value">
+        {society['activities'] if not activities_missing else "Details coming soon."}
+    </div>
     <div class="detail-label">Matched Skills</div>
     <div class="detail-value">
         {", ".join(society["matched_skills"]) if society["matched_skills"] else "None"}

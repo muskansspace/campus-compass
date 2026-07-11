@@ -75,8 +75,55 @@ KNOWN_KEYWORDS = {
     "entrepreneurship",
     "social impact",
     "music",
-    "dance"
+    "dance",
+
+    # Added to support expanded Home.py skill/interest dropdowns —
+    # these terms appear literally in society domain/skills text
+    # but weren't recognized before, so selecting them never matched.
+    "ai/ml",
+    "creative writing",
+    "content writing",
+    "data analysis",
+    "video editing",
+    "mental health",
+    "sustainability"
 }
+
+# -------------------------------------------------
+# Canonical Concept Map
+# -------------------------------------------------
+# Several recognized keywords are really the same underlying concept
+# expressed different ways (a society description that says "tech,
+# technical, engineering, innovation" isn't 4 distinct things — it's
+# one "this is a tech society" signal said 4 times). Without collapsing
+# these, tech-heavy societies racked up 3-4x the match count of a
+# niche society (e.g. B.H.A.V, whose only concepts are "public
+# speaking", "debate", "mun", "creative writing") purely because their
+# descriptions are wordier — not because the student is a better fit.
+# Canonicalizing keeps each concept worth exactly one match, on both
+# the society side and the student side.
+CANONICAL_MAP = {
+    "tech": "technology",
+    "technical": "technology",
+    "engineering": "technology",
+    "innovation": "technology",
+
+    "artificial intelligence": "ai",
+    "machine learning": "ai",
+    "deep learning": "ai",
+
+    "ui": "ui/ux",
+    "ux": "ui/ux",
+
+    "community building": "community",
+
+    "cyber security": "cybersecurity",
+}
+
+
+def canonicalize(keyword):
+    return CANONICAL_MAP.get(keyword, keyword)
+
 
 STOP_WORDS = {
     "the","a","an","and","or","for","of","to","in",
@@ -170,7 +217,12 @@ def extract_keywords(text):
 
     for keyword in KNOWN_KEYWORDS:
 
-        if keyword in text:
+        # Word-boundary check instead of plain substring — plain "in text"
+        # caused false positives like "mun" matching inside "community",
+        # or "ai" matching inside "maintain"/"domain".
+        pattern = r"(?<![a-z0-9])" + re.escape(keyword) + r"(?![a-z0-9])"
+
+        if re.search(pattern, text):
             keywords.add(keyword)
 
-    return expand_keywords(keywords)
+    return {canonicalize(k) for k in expand_keywords(keywords)}

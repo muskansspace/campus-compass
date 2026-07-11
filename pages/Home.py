@@ -199,17 +199,35 @@ st.markdown("""
 st.markdown("### Your Profile")
 
 # ── Predefined options ──
+# Expanded to cover the skills/domains societies actually list, so
+# the recommendation engine has more real keywords to match on.
+# Near-duplicate technical synonyms (tech/technical/technology,
+# ui/ux/ui/ux) are intentionally kept as single options — the matching
+# engine auto-expands them internally (see recommendation_engine.py)
+# instead of showing 3 near-identical checkboxes for the same thing.
 SKILLS_OPTIONS = [
-    "Python", "Java", "C++", "Web Development",
-    "Machine Learning", "UI/UX Design", "Public Speaking",
-    "Content Writing", "Photography", "Video Editing",
-    "Data Analysis", "DSA", "App Development", "Graphic Design"
+    "Python", "Java", "C++", "C Programming", "JavaScript", "SQL",
+    "Web Development", "App Development",
+    "AI", "Artificial Intelligence", "Machine Learning", "Deep Learning",
+    "Computer Vision", "Data Science", "Data Analysis",
+    "DSA", "Competitive Programming", "Open Source",
+    "Git", "AWS", "Cloud", "Robotics", "Blockchain", "Web3",
+    "Cybersecurity", "Hardware", "Engineering",
+    "UI/UX", "Graphic Design", "Photography", "Video Editing",
+    "Public Speaking", "Debate", "Creative Writing", "Content Writing",
+    "Communication", "Event Management", "Leadership", "Teamwork",
+    "Problem Solving", "Research", "Finance", "Music", "Dance"
 ]
 
 INTERESTS_OPTIONS = [
-    "Technology", "Management", "Cultural", "Sports",
-    "Social Impact", "Design", "Literary", "Music", "Dance",
-    "Research", "Entrepreneurship", "Photography"
+    "Technology", "AI/ML", "Web Development", "Blockchain", "Robotics",
+    "Competitive Programming", "Open Source", "Cybersecurity",
+    "Innovation", "Engineering",
+    "Management", "Entrepreneurship", "Finance", "Leadership", "Networking",
+    "Community", "Community Building", "MUN",
+    "Cultural", "Music", "Dance", "Literature", "Public Speaking", "Debate",
+    "Design", "Photography", "Sports", "Social Impact",
+    "Mental Health", "Research", "Sustainability"
 ]
 
 # ── Separate known vs extra (custom) entries ──

@@ -14,8 +14,9 @@ REQUIRED_PROFILE_FIELDS = (
 
 def get_society_recommendations(profile: dict, limit: int = 5):
     """
-    Receives a complete student profile from the backend
-    and returns Top N ranked society recommendations.
+    Receives a complete student profile from the backend and returns
+    ranked society recommendations. Pass limit=None to get ALL
+    societies (with their match %), not just the top N.
     """
 
     if not isinstance(profile, dict):
@@ -46,11 +47,12 @@ def get_society_recommendations(profile: dict, limit: int = 5):
     if hours_per_week < 0:
         raise ValueError("hours_per_week cannot be negative")
 
-    if not isinstance(limit, int):
-        raise TypeError("limit must be an integer")
+    if limit is not None:
+        if not isinstance(limit, int):
+            raise TypeError("limit must be an integer or None")
 
-    if limit <= 0:
-        raise ValueError("limit must be greater than 0")
+        if limit <= 0:
+            raise ValueError("limit must be greater than 0")
 
     student = StudentProfile(
         name=str(profile["name"]).strip(),
@@ -62,5 +64,8 @@ def get_society_recommendations(profile: dict, limit: int = 5):
     )
 
     engine = RecommendationEngine(student)
+
+    if limit is None:
+        return engine.recommend()
 
     return engine.get_top_recommendations(limit)
