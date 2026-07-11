@@ -152,7 +152,7 @@ with st.sidebar:
     if st.button("Logout"):
         try:
             supabase.auth.sign_out()
-        except:
+        except Exception:
             pass
         st.session_state.clear()
         st.switch_page("App.py")
@@ -238,7 +238,7 @@ if not saved:
     st.markdown("<div style='height:0.8rem'></div>", unsafe_allow_html=True)
 
     if st.button("Go to Recommendations", use_container_width=False):
-        st.switch_page("pages/Recommendation.py")
+        st.switch_page("pages/2_Recommendation.py")
 
 else:
     # ── Saved societies list ──
@@ -293,7 +293,7 @@ else:
     if not available_hrs:
         st.warning("Please complete your profile with available hours to see burnout analysis.")
         if st.button("Go to Home"):
-            st.switch_page("pages/Home.py")
+            st.switch_page("pages/1_Home.py")
     else:
         # ── Burnout Calculator ──
         st.markdown("""

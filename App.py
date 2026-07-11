@@ -104,7 +104,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 if st.session_state.get("logged_in"):
-    st.switch_page("pages/Home.py")
+    st.switch_page("pages/1_Home.py")
 
 left, center, right = st.columns([1, 1.2, 1])
 

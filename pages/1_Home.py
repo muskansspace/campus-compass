@@ -337,6 +337,6 @@ if st.button("Find My Societies", use_container_width=True):
                 del st.session_state["profile_cache"]
 
             st.success("Profile saved! Finding your matches...")
-            st.switch_page("pages/Recommendation.py")
+            st.switch_page("pages/2_Recommendation.py")
         except Exception as e:
             st.error(f"Could not save profile: {e}")

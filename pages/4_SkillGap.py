@@ -140,7 +140,7 @@ if "selected_society" not in st.session_state:
     """, unsafe_allow_html=True)
 
     if st.button("⬅ Back to Recommendations"):
-        st.switch_page("pages/Recommendation.py")
+        st.switch_page("pages/2_Recommendation.py")
     st.stop()
 
 society = st.session_state["selected_society"]
@@ -181,4 +181,4 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 if st.button("⬅ Back to Recommendations"):
-    st.switch_page("pages/Recommendation.py")
+    st.switch_page("pages/2_Recommendation.py")

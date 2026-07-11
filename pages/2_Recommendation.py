@@ -147,7 +147,7 @@ with st.sidebar:
     if st.button("Logout"):
         try:
             supabase.auth.sign_out()
-        except:
+        except Exception:
             pass
         st.session_state.clear()
         st.switch_page("App.py")
@@ -317,7 +317,7 @@ else:
                     use_container_width=True,
                 ):
                     st.session_state["selected_society"] = society
-                    st.switch_page("pages/SkillGap.py")
+                    st.switch_page("pages/4_SkillGap.py")
 
             with btn2:
                 if st.button(
@@ -326,13 +326,24 @@ else:
                     use_container_width=True,
                 ):
                     try:
-                        supabase.table("interested_societies").upsert(
+                        # upsert(on_conflict=...) only works if the DB has
+                        # a matching unique constraint — without one it
+                        # silently falls back to a plain insert and
+                        # creates duplicate rows. Doing an explicit
+                        # delete-then-insert guarantees no duplicates
+                        # regardless of DB-side constraints.
+                        supabase.table("interested_societies").delete().eq(
+                            "user_id", st.session_state["user_id"]
+                        ).eq(
+                            "society_name", society["society_name"]
+                        ).execute()
+
+                        supabase.table("interested_societies").insert(
                             {
                                 "user_id": st.session_state["user_id"],
                                 "society_name": society["society_name"],
                                 "match_pct": round(society["score"]),
-                            },
-                            on_conflict="user_id,society_name",
+                            }
                         ).execute()
 
                         st.success("Saved to favourites!")
