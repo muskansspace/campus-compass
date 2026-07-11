@@ -150,6 +150,10 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     if st.button("Logout"):
+        try:
+            supabase.auth.sign_out()
+        except Exception:
+            pass
         st.session_state.clear()
         st.switch_page("App.py")
 
@@ -161,8 +165,56 @@ st.markdown("""
 </p>
 """, unsafe_allow_html=True)
 
-# ── Get saved societies ──
-saved = st.session_state.get("saved_societies", [])
+# ── Get saved societies from Supabase (was reading a session_state
+#    list that was never populated — Recommendation.py saves to the
+#    "interested_societies" table, but nothing here ever read it back) ──
+
+def load_saved_societies(user_id):
+    interested = (
+        supabase
+        .table("interested_societies")
+        .select("*")
+        .eq("user_id", user_id)
+        .execute()
+    ).data or []
+
+    if not interested:
+        return []
+
+    # interested_societies only stores society_name + match_pct —
+    # enrich with domain/commitment_per_week/etc from the societies
+    # table so burnout_calculator / best_combinations have what they need.
+    all_societies = (
+        supabase
+        .table("societies")
+        .select("*")
+        .execute()
+    ).data or []
+
+    society_lookup = {s["society_name"]: s for s in all_societies}
+
+    merged = []
+
+    for entry in interested:
+        details = society_lookup.get(entry["society_name"])
+
+        if not details:
+            # Society was saved but no longer exists in the societies
+            # table (renamed/removed) — skip it rather than crash.
+            continue
+
+        merged.append({
+            "society_name": details["society_name"],
+            "name": details["society_name"],
+            "domain": details.get("domain", ""),
+            "commitment_per_week": details.get("commitment_per_week_num") or 0,
+            "match_pct": entry.get("match_pct", 0),
+        })
+
+    return merged
+
+
+saved = load_saved_societies(st.session_state["user_id"])
 
 # ── Empty state ──
 if not saved:
@@ -186,7 +238,7 @@ if not saved:
     st.markdown("<div style='height:0.8rem'></div>", unsafe_allow_html=True)
 
     if st.button("Go to Recommendations", use_container_width=False):
-        st.switch_page("pages/Recommendation.py")
+        st.switch_page("pages/2_Recommendation.py")
 
 else:
     # ── Saved societies list ──
@@ -212,8 +264,16 @@ else:
 
         with col3:
             if st.button("Remove", key=f"remove_{i}"):
-                st.session_state["saved_societies"].pop(i)
-                st.rerun()
+                try:
+                    supabase.table("interested_societies").delete().eq(
+                        "user_id", st.session_state["user_id"]
+                    ).eq(
+                        "society_name", society["society_name"]
+                    ).execute()
+
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Could not remove: {e}")
 
         st.markdown("<hr style='border-color:#3d2e38; margin:0.3rem 0;'>", unsafe_allow_html=True)
 
@@ -233,7 +293,7 @@ else:
     if not available_hrs:
         st.warning("Please complete your profile with available hours to see burnout analysis.")
         if st.button("Go to Home"):
-            st.switch_page("pages/Home.py")
+            st.switch_page("pages/1_Home.py")
     else:
         # ── Burnout Calculator ──
         st.markdown("""

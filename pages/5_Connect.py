@@ -131,6 +131,10 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     if st.button("Logout"):
+        try:
+            supabase.auth.sign_out()
+        except Exception:
+            pass
         st.session_state.clear()
         st.switch_page("App.py")
 
@@ -174,7 +178,7 @@ if not my_society_names:
     st.markdown("<div style='height:0.8rem'></div>", unsafe_allow_html=True)
 
     if st.button("Go to Recommendations", use_container_width=False):
-        st.switch_page("pages/Recommendation.py")
+        st.switch_page("pages/2_Recommendation.py")
 
 else:
     # ── Step 2: everyone else interested in the same societies ──
