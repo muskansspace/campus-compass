@@ -13,7 +13,7 @@ st.markdown("""
 <style>
     .stApp { background: #2A252A; }
     .block-container {
-        padding-top: 2rem !important;
+        padding-top: 3rem !important;
         max-width: 860px !important;
         margin: 0 auto !important;
     }
@@ -130,14 +130,21 @@ with st.sidebar:
         st.switch_page("App.py")
 
 # ── Guard: page requires a society to have been selected on Recommendation.py ──
+st.markdown("""
+<h1 style="margin-bottom:1.5rem;">🎯 Skill Gap Analysis</h1>
+""", unsafe_allow_html=True)
+
 if "selected_society" not in st.session_state:
     st.markdown("""
     <div class="detail-box">
         <div class="detail-value">
-            No society selected. Go back to Recommendations first.
+            No society selected yet. Go to Recommendations and click
+            "Skill Gap Analysis" on a society to see its breakdown here.
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
 
     if st.button("⬅ Back to Recommendations"):
         st.switch_page("pages/2_Recommendation.py")
@@ -146,8 +153,7 @@ if "selected_society" not in st.session_state:
 society = st.session_state["selected_society"]
 
 st.markdown(f"""
-<h1 style="margin-bottom:0.2rem;">🎯 Skill Gap Analysis</h1>
-<p style="color:#C99DA3; font-size:1.05rem; margin-bottom:1.5rem;">
+<p style="color:#C99DA3; font-size:1.05rem; margin-bottom:1.5rem; margin-top:-1rem;">
     {society['society_name']}
 </p>
 """, unsafe_allow_html=True)
