@@ -1,6 +1,6 @@
 streamlit
 supabase
 python-dotenv
-pandas
-numpy
+pandas==2.2.3
+numpy==1.26.4
 openai==2.44.0
