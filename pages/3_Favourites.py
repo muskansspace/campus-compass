@@ -1,5 +1,6 @@
 import streamlit as st
-from supabase_client import supabase
+from supabase_client import get_supabase_client
+supabase = get_supabase_client()
 from analytics import burnout_calculator, best_combinations, get_burnout_advice
 
 st.set_page_config(
