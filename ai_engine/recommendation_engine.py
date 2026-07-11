@@ -2,7 +2,7 @@ import re
 
 import pandas as pd
 
-from supabase_client import supabase
+from supabase_client import get_supabase_client
 
 from ai_engine.models import StudentProfile
 from ai_engine.utils import extract_keywords, canonicalize
@@ -50,7 +50,7 @@ class RecommendationEngine:
         """
 
         response = (
-            supabase
+            get_supabase_client()
             .table("societies")
             .select("*")
             .execute()

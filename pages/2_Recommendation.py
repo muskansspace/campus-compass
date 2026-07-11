@@ -6,7 +6,8 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.append(str(ROOT_DIR))
 
-from supabase_client import supabase
+from supabase_client import get_supabase_client
+supabase = get_supabase_client()
 from ai_engine.service import get_society_recommendations
 
 st.set_page_config(
