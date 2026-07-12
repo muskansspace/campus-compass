@@ -108,6 +108,13 @@ st.markdown("""
         border-radius: 8px !important;
         color: #C6DDF0 !important;
     }
+    /* The selected value text is nested deeper inside baseweb's Select
+       component — the rule above alone didn't reach it, so the text
+       was rendering in its default dark color, invisible against the
+       dark background (this is the "Year" field appearing blank). */
+    [data-baseweb="select"] * {
+        color: #C6DDF0 !important;
+    }
     [data-baseweb="menu"] { background: #3d2e38 !important; }
     [data-baseweb="option"] {
         background: #3d2e38 !important;

@@ -53,6 +53,9 @@ st.markdown("""
         border-radius: 8px !important;
         color: #C6DDF0 !important;
     }
+    [data-baseweb="select"] * {
+        color: #C6DDF0 !important;
+    }
     [data-baseweb="menu"] { background: #3d2e38 !important; }
     [data-baseweb="option"] {
         background: #3d2e38 !important;
