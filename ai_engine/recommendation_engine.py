@@ -344,6 +344,8 @@ class RecommendationEngine:
                 "domain": society["domain"],
                 "description": society["description"],
                 "activities": society["activities"],
+                "other_aspects": society.get("other_aspects"),
+                "ai_about": society.get("ai_about"),
 
                 "instagram": society.get("contacts_instagram"),
                 "website": society.get("website"),

@@ -325,20 +325,40 @@ if st.button("Find My Societies", use_container_width=True):
         st.session_state["user_name"] = name
 
         try:
-            supabase.table("profiles").upsert(
-                {
-                    "user_id": st.session_state["user_id"],
-                    "name": name,
-                    "year": year,
-                    "branch": branch,
-                    "skills": all_skills,
-                    "interests": all_interests,
-                    "hours_per_week": int(hours),
-                    "linkedin_url": linkedin if linkedin else None,
-                    "linkedin_share": share_linkedin == "Yes"
-                },
-                on_conflict="user_id"
-            ).execute()
+            # upsert(on_conflict="user_id") silently falls back to a
+            # plain insert if the profiles table doesn't actually have
+            # a matching unique/primary key constraint — this created
+            # duplicate rows for interested_societies earlier, and the
+            # same bug here would explain linkedin_share appearing to
+            # "not save": Connect.py could still be matching an older
+            # duplicate row that still has linkedin_share=True.
+            # Explicit check-then-update/insert guarantees correctness
+            # regardless of DB-side constraints.
+            existing = (
+                supabase.table("profiles")
+                .select("user_id")
+                .eq("user_id", st.session_state["user_id"])
+                .execute()
+            )
+
+            profile_data = {
+                "user_id": st.session_state["user_id"],
+                "name": name,
+                "year": year,
+                "branch": branch,
+                "skills": all_skills,
+                "interests": all_interests,
+                "hours_per_week": int(hours),
+                "linkedin_url": linkedin if linkedin else None,
+                "linkedin_share": share_linkedin == "Yes"
+            }
+
+            if existing.data:
+                supabase.table("profiles").update(profile_data).eq(
+                    "user_id", st.session_state["user_id"]
+                ).execute()
+            else:
+                supabase.table("profiles").insert(profile_data).execute()
 
             # Invalidate cache so next visit to Home reflects new data
             if "profile_cache" in st.session_state:

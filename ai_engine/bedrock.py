@@ -25,6 +25,31 @@ class BedrockClient:
             base_url=OPENAI_BASE_URL
         )
 
+    def generate_text(self, prompt):
+        """
+        Sends a prompt to the configured model and returns the raw
+        text response (no JSON parsing) — used for generating plain
+        prose like the society info paragraph.
+        """
+
+        try:
+
+            response = self.client.responses.create(
+                model=MODEL_ID,
+                input=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            )
+
+            return response.output_text
+
+        except Exception as e:
+            print("Bedrock Error:", e)
+            raise
+
     def generate(self, prompt):
         """
         Sends a prompt to the configured model

@@ -228,6 +228,13 @@ else:
 
         description_missing = is_empty(society.get("description"))
         activities_missing = is_empty(society.get("activities"))
+        other_aspects_missing = is_empty(society.get("other_aspects"))
+        recruitment_missing = is_empty(society.get("recruitment_month"))
+
+        all_info_missing = (
+            description_missing and activities_missing
+            and other_aspects_missing and recruitment_missing
+        )
 
         with st.expander(
             f"{society['society_name']}  —  {society['domain'][:45]}"
@@ -243,7 +250,7 @@ else:
 
             # Detail box — societies whose info hasn't been added to the
             # database yet get a friendly placeholder instead of raw "N/A".
-            if description_missing and activities_missing:
+            if all_info_missing:
                 st.markdown(f"""
 <div class="detail-box">
     <div class="detail-value">
@@ -253,23 +260,37 @@ else:
 </div>
 """, unsafe_allow_html=True)
             else:
+                # ai_about is pre-generated once (see generate_society_blurbs.py)
+                # and stored in the DB — reading it here is instant, no
+                # live AI call. Fallback only covers societies that
+                # haven't been backfilled yet.
+                about_text = society.get("ai_about")
+
+                if not about_text or not str(about_text).strip():
+                    about_parts = [
+                        p for p in [
+                            society.get("description") if not description_missing else None,
+                            society.get("activities") if not activities_missing else None,
+                            society.get("other_aspects") if not other_aspects_missing else None,
+                        ] if p
+                    ]
+                    about_text = "<br><br>".join(about_parts)
+
+                recruitment_value = (
+                    society.get("recruitment_month")
+                    if not recruitment_missing
+                    else "Not specified"
+                )
+
                 st.markdown(f"""
 <div class="detail-box">
     <div class="detail-label">About</div>
-    <div class="detail-value">
-        {society['description'] if not description_missing else "Details coming soon."}
+    <div class="detail-value" style="font-size:1rem; line-height:1.7;">
+        {about_text}
     </div>
-    <div class="detail-label">Activities</div>
+    <div class="detail-label">Recruitment</div>
     <div class="detail-value">
-        {society['activities'] if not activities_missing else "Details coming soon."}
-    </div>
-    <div class="detail-label">Matched Skills</div>
-    <div class="detail-value">
-        {", ".join(society["matched_skills"]) if society["matched_skills"] else "None"}
-    </div>
-    <div class="detail-label">Skills to Develop</div>
-    <div class="detail-value">
-        {", ".join(society["missing_skills"]) if society["missing_skills"] else "None"}
+        {recruitment_value}
     </div>
     <div class="detail-label">Recommendation Reason</div>
     <div class="detail-value">
@@ -277,6 +298,7 @@ else:
     </div>
 </div>
 """, unsafe_allow_html=True)
+
 
             # Contact links
             st.markdown(
