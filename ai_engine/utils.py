@@ -44,6 +44,7 @@ KNOWN_KEYWORDS = {
     "leadership",
     "teamwork",
     "communication",
+    "personality development",
     "public speaking",
     "event management",
 
@@ -76,6 +77,11 @@ KNOWN_KEYWORDS = {
     "social impact",
     "music",
     "dance",
+    "theatre",
+    "street play",
+    "instruments",
+    "economics",
+    "skill development",
 
     # Added to support expanded Home.py skill/interest dropdowns —
     # these terms appear literally in society domain/skills text
@@ -86,7 +92,9 @@ KNOWN_KEYWORDS = {
     "data analysis",
     "video editing",
     "mental health",
-    "sustainability"
+    "sustainability",
+    "women empowerment",
+    "mechanical design",
 }
 
 # -------------------------------------------------
@@ -118,8 +126,9 @@ CANONICAL_MAP = {
     "community building": "community",
 
     "cyber security": "cybersecurity",
-}
 
+    "web development":"webdev",
+}
 
 def canonicalize(keyword):
     return CANONICAL_MAP.get(keyword, keyword)
