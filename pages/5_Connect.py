@@ -249,6 +249,10 @@ else:
                 branch = peer.get("branch", "")
                 year = peer.get("year", "")
                 linkedin_url = peer.get("linkedin_url", "")
+                if linkedin_url and not linkedin_url.startswith(("http://", "https://")):
+                    linkedin_url = "https://" + linkedin_url
+
+                 
 
                 meta_parts = [p for p in [branch, year] if p]
                 meta_text = " · ".join(meta_parts)
