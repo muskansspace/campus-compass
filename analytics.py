@@ -85,6 +85,17 @@ def best_combinations(selected_societies, available_hrs):
     if len(selected_societies) == 1:
         return None, "Save at least 2 societies for suggestions💡", None
 
+    # Cap input size — checking every combination of N societies grows
+    # exponentially (2^N). With 15+ saved societies this measurably
+    # freezes the page; past ~20 it's multiple seconds. Keep the
+    # highest-match ones since those are the most relevant anyway.
+    if len(selected_societies) > 12:
+        selected_societies = sorted(
+            selected_societies,
+            key=lambda s: s.get('match_pct', 0),
+            reverse=True
+        )[:12]
+
     comfortable_limit = available_hrs * 0.80  # 80% threshold
     manageable_limit = available_hrs * 1.00   # 100% threshold
 
@@ -114,95 +125,7 @@ def get_burnout_advice(burnout_pct, combos):
         return "You're overcommitting. We strongly suggest picking a combination from below."
     else:
         return "High burnout risk! Please pick one of the suggested combinations to stay healthy."
-    
-# ─── PEER MATCHING ────────────────────────────
-def peer_matching(current_user_id, all_saved_data):
-    """
-    current_user_id: logged in user ka id
-    
-    all_saved_data: list of dicts — Supabase se aayega
-    e.g. [
-        {
-            'user_id': 'u2',
-            'name': 'Priya',
-            'society_name': 'AI Club',
-            'linkedin_url': 'linkedin.com/in/priya',
-            'linkedin_share': True
-        },
-        ...
-    ]
-    
-    Returns: dict — society wise peers
-    e.g. {
-        'AI Club': [
-            {'name': 'Priya', 'linkedin_url': '...'},
-            {'name': 'Sneha', 'linkedin_url': '...'}
-        ],
-        'NSS': [...]
-    }
-    """
-    
-    # Sirf opt-in users aur current user nahi
-    filtered = [
-        d for d in all_saved_data
-        if d.get('linkedin_share') == True
-        and d.get('user_id') != current_user_id
-    ]
-    
-    # Society wise group karo
-    society_peers = {}
-    
-    for entry in filtered:
-        society = entry['society_name']
-        
-        if society not in society_peers:
-            society_peers[society] = []
-        
-        # Duplicate user same society mein nahi aaye
-        already_added = any(
-            p['user_id'] == entry['user_id'] 
-            for p in society_peers[society]
-        )
-        
-        if not already_added:
-            society_peers[society].append({
-                'user_id': entry['user_id'],
-                'name': entry['name'],
-                'linkedin_url': entry['linkedin_url']
-            })
-    
-    return society_peers
 
-
-# ─── PEER MATCHING — FILTER BY USER SAVED ─────
-def get_my_peers(current_user_id, current_user_saved, all_saved_data):
-    """
-    Sirf current user ki saved societies ke peers dikhao
-
-    current_user_saved: list of society names current user ne save ki hain
-    e.g. ['AI Club', 'NSS', 'Dance']
-    """
-    
-    all_peers = peer_matching(current_user_id, all_saved_data)
-    
-    # Sirf current user ki societies filter karo
-    my_peers = {
-        society: peers
-        for society, peers in all_peers.items()
-        if society in current_user_saved
-    }
-    
-    # Empty societies remove karo
-    my_peers = {
-        society: peers
-        for society, peers in my_peers.items()
-        if len(peers) > 0
-    }
-    
-    if not my_peers:
-        return None, "No peers found yet — check back later as more students join! 🙂"
-    
-    return my_peers, None
 
 # ─── TEST ─────────────────────────────────────
 if __name__ == "__main__":
@@ -230,26 +153,3 @@ if __name__ == "__main__":
         for i, c in enumerate(combos):
             names = [s['name'] for s in c['societies']]
             print(f"Combo {i+1}: {names} | {c['total_hrs']}hrs | {c['avg_match']}% match")
-
-    # Peer matching test
-    test_all_saved = [
-        {'user_id': 'u2', 'name': 'Priya', 'society_name': 'AI Club',
-         'linkedin_url': 'linkedin.com/in/priya', 'linkedin_share': True},
-        {'user_id': 'u3', 'name': 'Sneha', 'society_name': 'NSS',
-         'linkedin_url': 'linkedin.com/in/sneha', 'linkedin_share': True},
-        {'user_id': 'u4', 'name': 'Riya', 'society_name': 'AI Club',
-         'linkedin_url': 'linkedin.com/in/riya', 'linkedin_share': False},
-        {'user_id': 'u5', 'name': 'Ananya', 'society_name': 'Dance',
-         'linkedin_url': 'linkedin.com/in/ananya', 'linkedin_share': True},
-    ]
-    
-    current_user_saved = ['AI Club', 'NSS', 'Dance']
-    
-    peers, error = get_my_peers('u1', current_user_saved, test_all_saved)
-    if error:
-        print(error)
-    else:
-        for society, people in peers.items():
-            print(f"\nThese people are interested in the same society as you \n 🎯{society}")
-            for p in people:
-                print(f"   → {p['name']} — {p['linkedin_url']}")
